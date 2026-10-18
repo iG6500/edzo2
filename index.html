@@ -608,6 +608,9 @@ function renderRun(){
        '<div class="fld"><label for="hrMax">Maxpulzus</label><input id="hrMax" type="number" inputmode="numeric" min="30" max="230" placeholder="ha van"></div></div>'+
        '<div class="fld"><label for="hrRec">Pulzusesés 1 perc alatt (ütés/perc)</label><input id="hrRec" type="number" inputmode="numeric" min="1" max="100" placeholder="pl. 22">'+
        '<p class="hint">Az edzés végi és az 1 perccel későbbi pulzus különbsége. Minél nagyobb, annál edzettebb a szív.</p></div>'+
+       (fb.kind==='ref'&&!routeSet()?'<div class="fld"><span class="lbl-t">Merre mentél?</span><p class="hint">A következő méréseken ezt a kört ismételd meg. A távot az óra összegzőjéből is beírhatod. Ha most nem tudod, később a következő mérésnél is megadhatod.</p></div>'+
+         '<div class="two"><div class="fld"><label for="rName">Útvonal</label><input id="rName" type="text" maxlength="60" placeholder="pl. Petőfi-sziget kör"></div>'+
+         '<div class="fld"><label for="rKm">Táv (km)</label><input id="rKm" type="number" inputmode="decimal" step="0.01" min="0.1" max="100" placeholder="pl. 5,2"></div></div>':'')+
        (fb.kind==='ref'?'':'<div class="fld"><label for="kmIn">Távolság (km)</label><input id="kmIn" type="number" inputmode="decimal" step="0.01" min="0" max="300" placeholder="ha mérted"></div>')+
        '<div class="fld"><label for="note">Megjegyzés</label><textarea id="note" maxlength="300" placeholder="Szél, útvonal, közérzet"></textarea></div>'+
        '<button class="btn primary wide" data-act="savefb" type="button">'+ic('i-check')+'<span>Mentés a naplóba</span></button>'+
@@ -618,6 +621,9 @@ function renderRun(){
 var routeSport=store.route.sport||'bike';
 function routeFields(){
   var r=store.route,locked=store.log.some(function(x){return x.kind==='ref';});
+  var sw='<div class="opts two-up" id="rSport"><button class="opt'+(routeSport==='bike'?' on':'')+'" type="button" data-act="rsport" data-v="bike">'+ic('i-bike')+'Kerékpár</button>'+
+    '<button class="opt'+(routeSport==='walk'?' on':'')+'" type="button" data-act="rsport" data-v="walk">'+ic('i-walk')+'Gyaloglás</button></div>';
+  if(!routeSet())return sw+'<p class="hint">Az útvonalat és a távot most nem kell megadnod. A mérés végén beírhatod, merre mentél, és a következő méréseken ugyanezt a kört ismétled.</p>';
   return '<div class="fld"><label for="rName">Útvonal</label><input id="rName" type="text" maxlength="60" placeholder="pl. Petőfi-sziget kör" value="'+esc(r.name||'')+'"></div>'+
     '<div class="fld"><label for="rKm">Táv (km)</label><input id="rKm" type="number" inputmode="decimal" step="0.01" min="0.1" max="100" value="'+(r.km||'')+'"></div>'+
     '<div class="opts two-up" id="rSport"><button class="opt'+(routeSport==='bike'?' on':'')+'" type="button" data-act="rsport" data-v="bike">'+ic('i-bike')+'Kerékpár</button>'+
@@ -733,12 +739,16 @@ function finishRun(full){
 }
 function finishWatch(){
   var sec=Math.round(elapsedMs()/1000);fanfare();
-  if(run.kind==='ref'){var s=run.session;toFeedback({kind:'ref',sport:run.sport,sid:s.id,week:s.week,title:s.title+(routeSet()?' · '+routeLabel():''),min:Math.round(sec/60),sec:sec,full:true,km:store.route.km||null});}
+  if(run.kind==='ref'){var s=run.session;toFeedback({kind:'ref',baseTitle:s.title,sport:run.sport,sid:s.id,week:s.week,title:s.title+(routeSet()?' · '+routeLabel():''),min:Math.round(sec/60),sec:sec,full:true,km:store.route.km||null});}
   else toFeedback({kind:'free',sport:run.sport,sid:null,week:null,title:'Szabad edzés · '+SPORT[run.sport].name,min:Math.round(sec/60),sec:sec,full:true});
 }
 function resetRun(){clearInterval(run.timer);unlock();run.mode='idle';run.rain=false;run.fb=null;run.sel=nextItem();persist();renderRun();}
 function saveFeedback(){
   var fb=run.fb;if(!fb)return;
+  if(fb.kind==='ref'&&$('rName')){
+    var rn=$('rName').value.trim().slice(0,60),rk=numIn('rKm',0.1,100,true);
+    if(rn||rk){store.route={name:rn,km:rk?Math.round(rk*100)/100:null,sport:fb.sport};fb.km=store.route.km;fb.title=fb.baseTitle+' · '+routeLabel();}
+  }
   var e={id:Date.now(),date:new Date().toISOString(),kind:fb.kind,sport:fb.sport,rain:!!fb.rain,sid:fb.sid,week:fb.week,title:fb.title,min:fb.min,sec:fb.sec||null,
     planned:fb.planned||null,full:!!fb.full,rpe:run.rpe||null,breath:run.breath||null,hrAvg:numIn('hrAvg',30,230),hrMax:numIn('hrMax',30,230),hrRec:numIn('hrRec',1,100),
     km:fb.km||numIn('kmIn',0.01,300,true),note:($('note')?$('note').value:'').trim().slice(0,300)};
@@ -966,9 +976,11 @@ document.addEventListener('click',function(ev){
     case 'rainpick':if(run.mode==='idle'){run.sel=byId(t.getAttribute('data-sid'));run.rain=true;renderRun();}setTab('run');break;
     case 'defer':store.defer[t.getAttribute('data-sid')]=dayKey(Date.now());save();if(run.mode==='idle'){run.rain=false;run.sel=nextItem();}renderAll();renderRun();setTab('run');break;
     case 'refstart':
-      var rn=($('rName')?$('rName').value:'').trim().slice(0,60),rk=numIn('rKm',0.1,100,true);
-      if(!rn&&!rk){$('rMsg').textContent='Add meg az útvonalat vagy a távot, hogy mindig ugyanazt a kört mérd.';break;}
-      store.route={name:rn,km:rk?Math.round(rk*100)/100:null,sport:routeSport};save();
+      if($('rName')){
+        var rn=$('rName').value.trim().slice(0,60),rk=numIn('rKm',0.1,100,true);
+        if(rn||rk)store.route={name:rn,km:rk?Math.round(rk*100)/100:null,sport:routeSport};
+      }
+      store.route.sport=routeSport;save();
       startWatch('ref',routeSport,byId(t.getAttribute('data-sid')));break;
     case 'rsport':
       routeSport=t.getAttribute('data-v');
