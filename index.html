@@ -809,9 +809,17 @@ function logText(){
   }).join('\n');
   return t+(mt?'\n\n'+mt:'');
 }
-var manualSport='bike';
+var manualSport='bike',manualLink='plan',manualBreath='';
+function nextPlanItem(){return nextItem();}
+function planTitle(np,sp){if(np.kind==='ref')return np.title+(routeSet()?' · '+routeLabel():'')+' (utólag)';return np.week+'. hét · '+np.title+' (utólag'+(sp!==np.sport?', '+SPORT[sp].short.toLowerCase():'')+')';}
+function linkLabel(np){return np.kind==='ref'?np.title+' (mérőkör'+(routeSet()?': '+esc(routeLabel()):'')+')':np.week+'. hét, '+esc(np.title.toLowerCase())+', '+np.total/60+' perc';}
 function manualForm(){
-  return '<div class="card"><h3>Utólagos rögzítés</h3><p class="muted small">Ha az app nélkül edzettél, itt beírhatod.</p>'+
+  var np=nextPlanItem();
+  return '<div class="card" id="manual"><h3>Utólagos rögzítés</h3><p class="muted small">Ha az app nélkül edzettél, itt beírhatod.</p>'+
+    (np?'<div class="fld"><span class="lbl-t">Mi volt ez?</span><div class="opts" id="mLink">'+
+      '<button class="opt'+(manualLink==='plan'?' on':'')+'" type="button" data-act="mlink" data-v="plan">'+ic('i-check')+'<span>A következő a tervben: '+linkLabel(np)+'</span></button>'+
+      '<button class="opt'+(manualLink==='extra'?' on':'')+'" type="button" data-act="mlink" data-v="extra">'+ic('i-plus')+'<span>Extra edzés, a terven kívül</span></button></div>'+
+      '<p class="hint">A tervbeli edzés kipipálódik, akkor is, ha más mozgásformával csináltad.</p></div>':'')+
     '<div class="opts three-up" id="mSport">'+['bike','walk','ellip'].map(function(k){return '<button class="opt'+(manualSport===k?' on':'')+'" type="button" data-act="msport" data-v="'+k+'">'+ic(SPORT[k].icon)+SPORT[k].short+'</button>';}).join('')+'</div>'+
     '<div class="fld"><label for="mDate">Nap</label><input id="mDate" type="date" value="'+dayKey(Date.now())+'"></div>'+
     '<div class="two"><div class="fld"><label for="mMin">Perc</label><input id="mMin" type="number" inputmode="numeric" min="0" max="600" placeholder="pl. 15"></div>'+
@@ -820,6 +828,8 @@ function manualForm(){
     '<div class="two"><div class="fld"><label for="mHrAvg">Átlagpulzus</label><input id="mHrAvg" type="number" inputmode="numeric" min="30" max="230" placeholder="ha van"></div>'+
     '<div class="fld"><label for="mHrMax">Maxpulzus</label><input id="mHrMax" type="number" inputmode="numeric" min="30" max="230" placeholder="ha van"></div></div>'+
     '<div class="fld"><label for="mHrRec">Pulzusesés 1 perc alatt</label><input id="mHrRec" type="number" inputmode="numeric" min="1" max="100" placeholder="ha van"></div>'+
+    '<div class="fld"><span class="lbl-t">Beszélgetés közben</span><div class="opts" id="mBreath">'+
+      [['full','Végig tudtam beszélni'],['short','Rövid mondatokat tudtam mondani'],['none','Alig tudtam megszólalni']].map(function(o){return '<button class="opt'+(manualBreath===o[0]?' on':'')+'" type="button" data-act="mbreath" data-v="'+o[0]+'">'+o[1]+'</button>';}).join('')+'</div></div>'+
     '<label class="check"><input id="mRef" type="checkbox"> Ez a referenciakör volt'+(routeSet()?' ('+esc(routeLabel())+')':'')+'</label>'+
     '<div class="fld"><label for="mNote">Megjegyzés</label><textarea id="mNote" maxlength="300"></textarea></div>'+
     '<p class="hint" id="mMsg"></p><button class="btn primary" data-act="msave" type="button">'+ic('i-plus')+'<span>Hozzáadás a naplóhoz</span></button></div>';
@@ -850,6 +860,7 @@ function renderLog(){
   L.slice().reverse().forEach(function(x){
     var icn=x.kind==='ref'?'i-flag':SPORT[x.sport||'bike'].icon,cls=x.kind==='ref'?'soft':(x.sport||'bike'),warn=store.hrCap&&x.hrMax&&x.hrMax>store.hrCap;
     h+='<div class="entry"><div class="ehead"><span class="mico p-'+cls+'">'+ic(icn)+'</span><div><div class="eyebrow">'+esc(fmtDate(x.date))+'</div><b>'+esc(x.title)+'</b></div>'+
+       (x.kind==='manual'&&!x.sid&&nextPlanItem()?'<button class="btn sm" data-act="attach" data-id="'+x.id+'" type="button">'+ic('i-check')+'<span>Tervbe</span></button>':'')+
        '<button class="btn sm" data-act="del" data-id="'+x.id+'" data-key="del'+x.id+'" data-label="Törlés" type="button">'+ic('i-trash')+'<span class="lbl">Törlés</span></button></div><div class="chips">'+
        '<span class="chip">'+entryDur(x)+(x.kind==='plan'&&!x.full?' · részleges':'')+'</span>'+
        (x.km?'<span class="chip">'+km(x.km)+'</span>':'')+(x.rpe?'<span class="chip">RPE '+x.rpe+'</span>':'')+
@@ -963,10 +974,14 @@ function saveManual(){
   if(dv===dayKey(Date.now()))d=new Date();
   var isRef=$('mRef').checked,rItem=null;
   if(isRef){for(var i=0;i<ALL.length;i++){if(ALL[i].kind==='ref'&&!isDone(ALL[i])){rItem=ALL[i];break;}}}
-  var e={id:Date.now(),date:d.toISOString(),kind:isRef?'ref':'manual',sport:isRef?(routeSet()?store.route.sport:manualSport):manualSport,sid:rItem?rItem.id:null,week:rItem?rItem.week:null,
-    title:isRef?(rItem?rItem.title:'Referenciakör')+(routeSet()?' · '+routeLabel():''):SPORT[manualSport].name+' (utólag)',min:Math.round(sec/60),sec:sec,full:true,
-    rpe:null,breath:null,hrAvg:numIn('mHrAvg',30,230),hrMax:numIn('mHrMax',30,230),hrRec:numIn('mHrRec',1,100),km:isRef?(store.route.km||numIn('mKm',0.01,300,true)):numIn('mKm',0.01,300,true),note:$('mNote').value.trim().slice(0,300)};
-  store.log.push(e);store.log.sort(function(a,b){return a.date<b.date?-1:1;});save();renderAll();
+  var np=(!isRef&&manualLink==='plan')?nextPlanItem():null;
+  if(np&&np.kind==='ref'){isRef=true;rItem=np;np=null;}
+  var e={id:Date.now(),date:d.toISOString(),kind:isRef?'ref':(np?'plan':'manual'),sport:isRef?(routeSet()?store.route.sport:manualSport):manualSport,
+    sid:rItem?rItem.id:(np?np.id:null),week:rItem?rItem.week:(np?np.week:null),planned:np?np.total/60:null,
+    title:isRef?(rItem?rItem.title:'Referenciakör')+(routeSet()?' · '+routeLabel():''):(np?planTitle(np,manualSport):SPORT[manualSport].name+' (utólag)'),min:Math.round(sec/60),sec:sec,full:true,
+    rpe:null,breath:manualBreath||null,hrAvg:numIn('mHrAvg',30,230),hrMax:numIn('mHrMax',30,230),hrRec:numIn('mHrRec',1,100),km:isRef?(store.route.km||numIn('mKm',0.01,300,true)):numIn('mKm',0.01,300,true),note:$('mNote').value.trim().slice(0,300)};
+  store.log.push(e);store.log.sort(function(a,b){return a.date<b.date?-1:1;});manualBreath='';manualLink='plan';
+  if(run.mode==='idle'){run.rain=false;run.sel=nextItem();}save();renderAll();
 }
 function copyText(txt,msgId,taId){
   var ok=function(){$(msgId).textContent='Vágólapra másolva.';};
@@ -1031,6 +1046,12 @@ document.addEventListener('click',function(ev){
       manualSport=t.getAttribute('data-v');
       [].forEach.call(document.querySelectorAll('#mSport .opt'),function(b){b.classList.toggle('on',b===t);});break;
     case 'msave':saveManual();break;
+    case 'mlink':manualLink=t.getAttribute('data-v');[].forEach.call(document.querySelectorAll('#mLink .opt'),function(b){b.classList.toggle('on',b===t);});break;
+    case 'mbreath':manualBreath=manualBreath===t.getAttribute('data-v')?'':t.getAttribute('data-v');[].forEach.call(document.querySelectorAll('#mBreath .opt'),function(b){b.classList.toggle('on',b.getAttribute('data-v')===manualBreath);});break;
+    case 'attach':
+      var aid=parseInt(t.getAttribute('data-id'),10),np2=nextPlanItem();
+      store.log.forEach(function(x){if(x.id===aid&&np2){x.kind=np2.kind==='ref'?'ref':'plan';x.sid=np2.id;x.week=np2.week;x.planned=np2.kind==='ref'?null:np2.total/60;x.full=true;x.title=planTitle(np2,x.sport||'bike');if(np2.kind==='ref'&&!x.km&&store.route.km)x.km=store.route.km;}});
+      if(run.mode==='idle'){run.rain=false;run.sel=nextItem();}save();renderAll();break;
     case 'metsave':saveMetrics();break;
     case 'metdel':
       var mid=parseInt(t.getAttribute('data-id'),10);
