@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="🤍edző">
+<meta name="apple-mobile-web-app-title" content="Alapozó">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -268,7 +268,7 @@ svg.ch .hl{fill:none;stroke:var(--heart);stroke-width:1.5}
 
 <div class="wrap">
   <header class="top">
-    <div class="brand"><span class="mark"><svg class="ic" aria-hidden="true"><use href="#i-pulse"/></svg></span>🤍edző</div>
+    <div class="brand"><span class="mark"><svg class="ic" aria-hidden="true"><use href="#i-pulse"/></svg></span>Alapozó</div>
     <button class="btn sm" id="sndBtn" data-act="snd" type="button" aria-pressed="true"></button>
   </header>
 
@@ -297,7 +297,7 @@ function load(){
       var o=JSON.parse(raw);
       if(o&&Array.isArray(o.log)){
         store.log=o.log;store.sound=o.sound!==false;store.hrCap=o.hrCap||null;
-        store.resets=o.resets||{};store.dismissed=o.dismissed||{};store.active=o.active||null;
+        store.resets=o.resets||{};store.dismissed=o.dismissed||{};store.active=o.active||null;store.voice=o.voice!==false;
         store.metrics=Array.isArray(o.metrics)?o.metrics:[];
         if(o.route)store.route=o.route;
         store.defer=o.defer||{};
@@ -453,11 +453,28 @@ function persist(){
 
 /* hang, rezgés, ébren tartás */
 var actx=null,wl=null;
-function ensureAudio(){try{if(!actx){var C=window.AudioContext||window.webkitAudioContext;if(C)actx=new C();}if(actx&&actx.state==='suspended')actx.resume();}catch(e){}}
+/* iPhone: a hangot érintés oldja fel; az audioSession 'playback' módja a néma kapcsoló mellett is szólhat (újabb iOS) */
+function ensureAudio(){
+  try{if(navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback';}catch(e){}
+  try{
+    if(!actx){var C=window.AudioContext||window.webkitAudioContext;if(C)actx=new C();}
+    if(actx&&actx.state!=='running')actx.resume();
+    if(actx&&!actx._unl){var b=actx.createBuffer(1,1,22050),s=actx.createBufferSource();s.buffer=b;s.connect(actx.destination);s.start(0);actx._unl=true;}
+  }catch(e){}
+}
+document.addEventListener('touchend',ensureAudio,{passive:true});
+document.addEventListener('pointerdown',ensureAudio,{passive:true});
+var huVoice=null;
+function pickVoice(){try{var v=speechSynthesis.getVoices();for(var i=0;i<v.length;i++)if(/^hu/i.test(v[i].lang)){huVoice=v[i];break;}}catch(e){}}
+try{pickVoice();speechSynthesis.onvoiceschanged=pickVoice;}catch(e){}
+function say(t){
+  if(!store.sound||store.voice===false)return;
+  try{var u=new SpeechSynthesisUtterance(t);u.lang='hu-HU';if(huVoice)u.voice=huVoice;u.rate=1;u.volume=1;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}
+}
 function beep(f,d){
   if(!store.sound||!actx)return;
-  try{var o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime;o.type='sine';o.frequency.value=f;g.gain.value=0.0001;o.connect(g);g.connect(actx.destination);
-    g.gain.exponentialRampToValueAtTime(0.25,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.start(t);o.stop(t+d+0.03);}catch(e){}
+  try{var o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime;o.type='triangle';o.frequency.value=f;g.gain.value=0.0001;o.connect(g);g.connect(actx.destination);
+    g.gain.exponentialRampToValueAtTime(0.8,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.start(t);o.stop(t+d+0.03);}catch(e){}
 }
 function vib(p){try{if(store.sound&&navigator.vibrate)navigator.vibrate(p);}catch(e){}}
 function cue(t){
@@ -468,7 +485,7 @@ function cue(t){
 function fanfare(){beep(784,.15);setTimeout(function(){beep(988,.15);},200);setTimeout(function(){beep(1175,.35);},400);vib([200,100,200,100,300]);}
 function lock(){try{if(navigator.wakeLock&&navigator.wakeLock.request)navigator.wakeLock.request('screen').then(function(l){wl=l;}).catch(function(){});}catch(e){}}
 function unlock(){try{if(wl){wl.release();wl=null;}}catch(e){}}
-document.addEventListener('visibilitychange',function(){if(!document.hidden&&(run.mode==='run'||run.mode==='watch')){lock();tick();}});
+document.addEventListener('visibilitychange',function(){if(!document.hidden){ensureAudio();if(run.mode==='run'||run.mode==='watch'){lock();tick();}}});
 
 /* kétlépéses megerősítés */
 var conf=null,confT=0;
@@ -529,6 +546,10 @@ function renderPlan(){
     h+='</div>';
   });
   h+='<div class="card"><h3>Beállítások</h3>'+
+     '<div class="fld"><span class="lbl-t">Hangjelzés</span>'+
+     '<label class="check"><input id="voiceOn" type="checkbox"'+(store.voice===false?'':' checked')+'> Szakaszváltáskor mondja is be (pl. „Tekerés, 5 perc”)</label>'+
+     '<button class="btn" data-act="sndtest" type="button">'+ic('i-sound')+'<span>Hangpróba</span></button>'+
+     '<p class="hint">iPhone-on a néma mód elnémíthatja: kapcsold ki, és nézd meg a hangerőt. Rezgést a böngésző iPhone-on nem tud adni. Lezárt képernyőnél az iOS megállítja a hangot, ezért edzés közben hagyd bekapcsolva a kijelzőt.</p></div>'+
      '<div class="fld"><label for="hrCap">Felső pulzushatár (ütés/perc)</label><input id="hrCap" type="number" inputmode="numeric" min="80" max="200" placeholder="A kardiológustól kérd" value="'+(store.hrCap||'')+'">'+
      '<p class="hint">Ha megadod, edzés közben látszik, és a napló jelzi, ha a maxpulzus fölé ment.</p></div>'+
      '<div class="btns"><button class="btn" data-act="export" type="button">'+ic('i-copy')+'<span>Biztonsági mentés másolása</span></button>'+
@@ -696,7 +717,7 @@ function tickRun(){
   var e=elapsedMs()/1000;
   if(e>=run.total){finishRun(true);return;}
   var idx=0;while(e>=run.cum[idx])idx++;
-  if(idx!==run.idx){var first=run.idx<0;run.idx=idx;setPhaseUI(idx);if(!first||e<1)cue(run.session.phases[idx].t);run.lastSec=-1;}
+  if(idx!==run.idx){var first=run.idx<0;run.idx=idx;setPhaseUI(idx);if(!first||e<1){var ph=run.session.phases[idx];cue(ph.t);setTimeout(function(){say(phName(ph.t,run.session.sport)+', '+Math.round(ph.s/60)+' perc');},650);}run.lastSec=-1;}
   var sl=Math.ceil(run.cum[idx]-e);
   if(sl!==run.lastSec){run.lastSec=sl;if(sl>=1&&sl<=3)beep(700,.08);}
   $('big').textContent=mmss(sl);
@@ -715,7 +736,7 @@ function go(){clearInterval(run.timer);run.timer=setInterval(tick,250);tick();}
 function startRun(){
   var s=run.sel;if(run.mode!=='idle'||!s||s.kind!=='plan')return;
   if(run.rain)s=swapAs(s,'ellip');
-  ensureAudio();lock();setupSession(s);
+  ensureAudio();say('Indul az edzés');lock();setupSession(s);
   run.kind='plan';run.base=0;run.resumeAt=Date.now();run.paused=false;run.idx=-1;run.lastSec=-1;run.mode='run';
   persist();renderRun();go();
 }
@@ -734,7 +755,7 @@ function skipPhase(){if(run.mode!=='run'||run.idx<0)return;run.base=run.cum[run.
 function toFeedback(fb){clearInterval(run.timer);unlock();run.fb=fb;run.rpe=0;run.breath='';run.mode='feedback';persist();renderRun();setTab('run');}
 function finishRun(full){
   var s=run.session,el=full?run.total:Math.min(run.total,elapsedMs()/1000);
-  if(full)fanfare();
+  if(full){fanfare();setTimeout(function(){say('Edzés kész. Szép munka.');},900);}
   toFeedback({kind:'plan',sport:s.sport,rain:!!s.orig,sid:s.id,week:s.week,title:s.week+'. hét · '+s.title,min:Math.round(el/60),sec:Math.round(el),planned:Math.round(run.total/60),full:full});
 }
 function finishWatch(){
@@ -1024,9 +1045,11 @@ document.addEventListener('click',function(ev){
       $('bkMsg').textContent='A betöltés felülírja a mostani naplót.';break;
     case 'import':arm('import',doImport);break;
     case 'snd':store.sound=!store.sound;save();renderSound();ensureAudio();break;
+    case 'sndtest':ensureAudio();if(!store.sound){store.sound=true;save();renderSound();}cue('main');setTimeout(function(){say('Hangpróba. Ha ezt hallod, minden rendben.');},500);break;
   }
 });
 document.addEventListener('change',function(ev){
+  if(ev.target&&ev.target.id==='voiceOn'){store.voice=ev.target.checked;save();return;}
   if(ev.target&&ev.target.id==='hrCap'){store.hrCap=numIn('hrCap',80,200);save();renderLog();}
 });
 
