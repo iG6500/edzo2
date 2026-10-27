@@ -1,0 +1,1535 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f7">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Alapozó">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>:root{padding-top:env(safe-area-inset-top,0px)}body{overscroll-behavior-y:none}</style>
+<title>Állóképesség Alapozó</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: iOS-szerű, egyoszlopos app. Nagy cím fülenként, kártyák és csoportosított listák szürke alapon, áttetsző alsó sáv.
+   Szín = mozgásforma (kék kerékpár, lila gyaloglás, indigó elliptikus, narancs mérőpont); a zöld a teljesítést, a rózsaszín a szív-adatokat jelzi. */
+:root{
+  --bg:#f2f2f7; --surface:#ffffff; --fill:rgba(120,120,128,.12); --fill2:rgba(120,120,128,.08); --segon:#ffffff;
+  --ink:#000000; --ink2:rgba(60,60,67,.85); --muted:rgba(60,60,67,.6); --line:rgba(60,60,67,.2); --track:rgba(120,120,128,.18);
+  --accent:#007aff; --accent-ink:#ffffff;
+  --bike:#32ade6; --walk:#af52de; --ellip:#5856d6; --ease:#ff9500; --soft:#8e8e93; --ref:#ff9500;
+  --danger:#ff3b30; --heart:#ff2d55; --good:#34c759; --str:#a2845e;
+  --n-bike:var(--bike); --n-walk:var(--walk); --n-ellip:var(--ellip); --n-ref:var(--ref); --night:var(--surface);
+  --f-body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-disp:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-num:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --r:12px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#000000; --surface:#1c1c1e; --fill:rgba(120,120,128,.24); --fill2:rgba(120,120,128,.16); --segon:#636366;
+    --ink:#ffffff; --ink2:rgba(235,235,245,.85); --muted:rgba(235,235,245,.6); --line:rgba(84,84,88,.65); --track:rgba(120,120,128,.32);
+    --accent:#0a84ff; --accent-ink:#ffffff;
+    --bike:#64d2ff; --walk:#bf5af2; --ellip:#5e5ce6; --ease:#ff9f0a; --soft:#98989d; --ref:#ff9f0a;
+    --danger:#ff453a; --heart:#ff375f; --good:#30d158; --str:#ac8e68;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#000000; --surface:#1c1c1e; --fill:rgba(120,120,128,.24); --fill2:rgba(120,120,128,.16); --segon:#636366;
+  --ink:#ffffff; --ink2:rgba(235,235,245,.85); --muted:rgba(235,235,245,.6); --line:rgba(84,84,88,.65); --track:rgba(120,120,128,.32);
+  --accent:#0a84ff; --accent-ink:#ffffff;
+  --bike:#64d2ff; --walk:#bf5af2; --ellip:#5e5ce6; --ease:#ff9f0a; --soft:#98989d; --ref:#ff9f0a;
+  --danger:#ff453a; --heart:#ff375f; --good:#30d158; --str:#ac8e68;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.42 var(--f-body);letter-spacing:-.01em;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+.wrap{max-width:600px;margin:0 auto;padding-block:6px calc(96px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.stack{display:flex;flex-direction:column;gap:20px}
+.ic{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+h1,h2,h3{margin:0;font-family:var(--f-disp);text-wrap:balance;letter-spacing:-.02em;line-height:1.15}
+p{margin:0}
+.ltitle{font-size:34px;font-weight:700;letter-spacing:-.03em;padding-top:8px;margin-bottom:-6px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.eyebrow{font-size:13px;font-weight:400;text-transform:uppercase;letter-spacing:.01em;color:var(--muted)}
+.p-bike{--ph:var(--bike)} .p-walk{--ph:var(--walk)} .p-ellip{--ph:var(--ellip)} .p-ease{--ph:var(--ease)} .p-soft{--ph:var(--soft)}
+.p-ref{--ph:var(--ref)} .p-str{--ph:var(--str)} .p-heart{--ph:var(--heart)} .p-tempo{--ph:var(--heart)} .p-accent{--ph:var(--accent)} .p-danger{--ph:var(--danger)} .p-good{--ph:var(--good)}
+
+/* alsó sáv */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px));
+  background:var(--surface);background:color-mix(in srgb,var(--surface) 82%,transparent);border-top:.5px solid var(--line);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
+.tabs-in{width:100%;max-width:480px;display:grid;grid-template-columns:repeat(4,1fr)}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:50px;background:none;border:0;color:var(--soft);font:500 10.5px var(--f-body);letter-spacing:.01em;cursor:pointer}
+.tab .ic{width:26px;height:26px;stroke-width:1.7}
+.tab[aria-selected="true"]{color:var(--accent)}
+.tab[aria-selected="true"] .ic{stroke-width:2.1}
+
+/* kártyák, gombok */
+.card{background:var(--surface);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card h2{font-size:22px;font-weight:700}
+.card h3{font-size:20px;font-weight:600}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.sect{display:flex;flex-direction:column;gap:7px}
+.sect > .eyebrow{padding-inline:16px}
+.sect-foot{font-size:13px;color:var(--muted);padding-inline:16px;line-height:1.38}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border-radius:12px;border:0;background:var(--fill);color:var(--accent);font:600 16px var(--f-body);letter-spacing:-.01em;cursor:pointer;text-align:center;transition:opacity .15s}
+.btn:active{opacity:.55}
+.btn.primary{background:var(--accent);color:var(--accent-ink);min-height:50px;font-size:17px;border-radius:14px}
+.btn.sm{min-height:32px;padding:0 14px;font-size:15px;border-radius:999px}
+.btn.danger{color:var(--danger)}
+.btn.wide{width:100%}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btns .btn{flex:1 1 140px}
+button:focus-visible,textarea:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.advice{background:color-mix(in srgb,var(--ease) 9%,var(--surface))}
+.advice .eyebrow{color:var(--ease);font-weight:600}
+.tag{display:inline-block;margin-left:7px;padding:1px 6px;border-radius:6px;background:var(--accent);color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;vertical-align:2px}
+
+/* Ma kártya és összegzés */
+.today{background:var(--surface);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.today .tk{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;letter-spacing:.01em;text-transform:uppercase;color:var(--ph)}
+.today .tk .ic{width:18px;height:18px;stroke-width:2}
+.today h2{font-size:28px;font-weight:700;letter-spacing:-.03em}
+.today .tmeta2{color:var(--muted);font-size:15px}
+.today-act{display:flex;gap:10px;margin-top:4px}
+.today-act .primary{flex:1}
+.btn.rainbtn{width:50px;min-height:50px;padding:0;border-radius:14px}
+.btn.rainbtn .ic{width:24px;height:24px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{background:var(--surface);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.stat .lab{font-size:13px;font-weight:600;color:var(--muted)}
+.stat .val{font:700 28px/1 var(--f-num);letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat .val small{font-size:15px;color:var(--muted);font-weight:600;letter-spacing:0}
+.ringrow{display:flex;align-items:center;gap:10px}
+.ring{width:40px;height:40px;flex:none}
+.ring .rt{fill:none;stroke:var(--track);stroke-width:6}
+.ring .rp{fill:none;stroke:var(--good);stroke-width:6;stroke-linecap:round}
+.ring .rp.acc{stroke:var(--accent)}
+.pbar{height:6px;border-radius:3px;background:var(--track);overflow:hidden}
+.pbar i{display:block;height:100%;border-radius:3px;background:var(--accent)}
+
+/* útvonaltérkép */
+.routecard{gap:10px;padding-bottom:14px}
+.route{width:100%;height:auto;display:block;overflow:visible}
+.route .rail{fill:none;stroke:var(--track);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.route .trav{fill:none;stroke:var(--accent);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+.route .wl{fill:var(--muted);font:600 9.5px var(--f-body);letter-spacing:.06em}
+.route .nx{fill:none;stroke:var(--accent);stroke-width:2;transform-box:fill-box;transform-origin:center;animation:ping 2.2s ease-out infinite}
+@keyframes ping{0%{transform:scale(.6);opacity:1}100%{transform:scale(1.7);opacity:0}}
+@media (prefers-reduced-motion:reduce){.route .nx{animation:none}}
+.hlegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.hlegend span{display:inline-flex;align-items:center;gap:6px}
+.hlegend i{width:9px;height:9px;border-radius:50%}
+/* csoportosított lista */
+.list{background:var(--surface);border-radius:var(--r);overflow:hidden}
+.li{position:relative;display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;min-height:46px;padding:8px 16px;width:100%;border:0;background:transparent;color:var(--ink);font:400 17px var(--f-body);letter-spacing:-.02em;text-align:left;cursor:pointer}
+.li + .li::before,.li + .wacc::before,.wacc + .wacc::before,.wacc + .li::before{content:"";position:absolute;top:0;left:58px;right:0;border-top:.5px solid var(--line)}
+.li-btn:active{background:var(--fill2)}
+.li.danger{color:var(--danger)}
+.li .mico{background:var(--ph);color:#fff}
+.li .inl{width:96px;text-align:right;border:0;background:transparent;color:var(--muted);font:400 17px var(--f-body);padding:0;min-height:0}
+.li .inl:focus{color:var(--ink);outline:none}
+.sw{appearance:none;-webkit-appearance:none;position:relative;width:51px;height:31px;margin:0;border-radius:16px;background:var(--fill);cursor:pointer;transition:background .2s}
+.sw::before{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);transition:transform .2s}
+.sw:checked{background:var(--good)}
+.sw:checked::before{transform:translateX(20px)}
+
+/* hetek */
+.wacc{position:relative}
+.wsum{list-style:none;display:grid;grid-template-columns:36px 1fr auto 14px;gap:12px;align-items:center;padding:12px 16px;cursor:pointer}
+.wsum::-webkit-details-marker{display:none}
+.wsum > .ic{width:14px;height:14px;color:var(--soft);stroke-width:2.4;transition:transform .2s}
+.wacc[open] .wsum > .ic{transform:rotate(180deg)}
+.wbadge{position:relative;width:36px;height:36px;display:grid;place-items:center}
+.wbadge .ring{position:absolute;inset:0;width:36px;height:36px}
+.wbadge .ring .rt,.wbadge .ring .rp{stroke-width:4}
+.wbadge b{position:relative;font:700 14px var(--f-num)}
+.wbadge .ic{position:relative;width:16px;height:16px;color:var(--good);stroke-width:2.6}
+.wt{display:flex;flex-direction:column;min-width:0}
+.wt > b{font-weight:600;font-size:17px;letter-spacing:-.02em}
+.wt .sub{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wacc[open] .wt .sub{white-space:normal}
+.wsum .cnt{font-size:15px;color:var(--muted);font-variant-numeric:tabular-nums}
+.wbody{padding-bottom:6px}
+.wfoot{font-size:13px;color:var(--muted);padding:4px 16px 8px 64px}
+.sess{position:relative;display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:center;padding:9px 16px 9px 22px}
+.sess::before{content:"";position:absolute;top:0;left:64px;right:0;border-top:.5px solid var(--line)}
+.sess.next{background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.st{display:flex;flex-direction:column;min-width:0}
+.st b{font-weight:500;font-size:16px}
+.st .meta{font-size:13px;color:var(--muted)}
+.mico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:color-mix(in srgb,var(--ph) 16%,transparent);color:var(--ph)}
+.mico .ic{width:17px;height:17px;stroke-width:2}
+.mico.on{background:var(--ph);color:#fff}
+
+/* választók */
+.subtabs,.opts.two-up,.opts.three-up{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;padding:2px;border-radius:9px;background:var(--fill)}
+.subtabs button,.opts.two-up .opt,.opts.three-up .opt{min-height:32px;border:0;border-radius:7px;background:transparent;color:var(--ink);font:500 13.5px var(--f-body);letter-spacing:-.01em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;padding:4px 6px;text-align:center}
+.subtabs button.on,.opts.two-up .opt.on,.opts.three-up .opt.on{background:var(--segon);font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04)}
+.opts.three-up .opt{flex-direction:column;gap:2px;min-height:52px}
+.opts.three-up .opt b{font:700 22px/1 var(--f-num)}
+.opts .opt .ic{width:18px;height:18px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opts:not(.two-up):not(.three-up):not(.seven) .opt{min-height:46px;border:0;border-radius:12px;background:var(--fill2);color:var(--ink);font:400 16px var(--f-body);text-align:left;padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer}
+.opts:not(.two-up):not(.three-up):not(.seven) .opt.on{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);font-weight:600}
+.rpe{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.rpe button{min-height:44px;border:0;border-radius:10px;background:var(--fill2);color:var(--ink);font:600 19px var(--f-num);cursor:pointer}
+.rpe button.on{background:var(--accent);color:#fff}
+.fld{display:flex;flex-direction:column;gap:6px;min-width:0}
+.fld label,.lbl-t{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.01em;padding-left:2px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type=number],input[type=date],input[type=text],textarea{width:100%;font:400 17px var(--f-body);color:var(--ink);background:var(--fill2);border:0;border-radius:10px;padding:10px 12px;min-height:44px;-webkit-appearance:none;appearance:none}
+textarea{min-height:80px;resize:vertical}
+.check{display:flex;align-items:center;gap:10px;font-size:16px}
+.check input{width:22px;height:22px;accent-color:var(--accent)}
+.hint{font-size:13px;color:var(--muted);min-height:1.2em;line-height:1.38}
+#spMsg:empty,#bkMsg:empty,#wdMsg:empty{display:none}
+details.guide{padding:0}
+details.guide summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px}
+details.guide summary::-webkit-details-marker{display:none}
+details.guide summary .ic{color:var(--soft);transition:transform .2s}
+details.guide[open] summary .ic{transform:rotate(180deg)}
+details.guide ul{margin:0;padding:0 16px 16px 34px;display:flex;flex-direction:column;gap:8px;font-size:15px}
+details.guide li::marker{color:var(--accent)}
+
+/* időzítő */
+.segs{display:flex;gap:2px;height:6px}
+.seg{border-radius:3px;background:var(--track);overflow:hidden;min-width:3px}
+.seg i{display:block;height:100%;width:0;background:var(--ph)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:9px;height:9px;border-radius:50%;background:var(--ph)}
+.timer{display:flex;flex-direction:column;gap:14px;border-radius:20px;padding:18px}
+.trow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:color-mix(in srgb,var(--ph) 15%,transparent);color:var(--ph);font-size:14px;font-weight:600}
+.pill .ic{width:17px;height:17px;stroke-width:2.1}
+.dial{position:relative;width:min(74vw,290px);aspect-ratio:1;max-width:100%;margin:6px auto 0}
+.dial svg{width:100%;height:100%;display:block}
+.dial .dtrack{fill:none;stroke:color-mix(in srgb,var(--ph) 18%,transparent);stroke-width:16}
+.dial .dprog{fill:none;stroke:var(--ph);stroke-width:16;stroke-linecap:round;transition:stroke-dashoffset .25s linear,stroke .5s}
+.dial .dtick{stroke:transparent}
+.dcenter{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.big{font:700 clamp(60px,19vw,92px)/1 var(--f-num);letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--ink)}
+.dsub{font-size:13px;font-weight:500;color:var(--muted)}
+.cue{text-align:center;color:var(--ink2);font-size:17px;min-height:2.9em;max-width:32ch;margin:0 auto;text-wrap:balance}
+.tmeta{display:flex;justify-content:space-between;gap:6px 12px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.tmeta b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+.ctrls{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ctrls .span2{grid-column:1/-1}
+.fbtime{font:700 64px/1 var(--f-num);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+
+/* napló */
+.verdict h2{font-size:28px}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sum div{display:flex;flex-direction:column;gap:2px}
+.sum b{font:700 24px/1.1 var(--f-num);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.sum span{font-size:13px;color:var(--muted)}
+.ins-list{display:flex;flex-direction:column}
+.ins{position:relative;display:grid;grid-template-columns:32px 1fr;gap:12px;padding-block:12px}
+.ins + .ins::before{content:"";position:absolute;top:0;left:44px;right:0;border-top:.5px solid var(--line)}
+.ins:first-child{padding-top:2px}.ins:last-child{padding-bottom:2px}
+.ins b{display:block;font-weight:600}
+.ins p{font-size:15px;color:var(--muted);margin-top:2px}
+.ins-ic{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:var(--fill);color:var(--soft)}
+.ins-ic .ic{width:18px;height:18px;stroke-width:2.2}
+.t-good .ins-ic{background:var(--good);color:#fff}
+.t-warn .ins-ic{background:var(--ease);color:#fff}
+.trends{display:flex;flex-direction:column}
+.trend{position:relative;display:flex;flex-direction:column;gap:6px;padding-block:14px}
+.trend + .trend::before{content:"";position:absolute;top:0;left:0;right:0;border-top:.5px solid var(--line)}
+.trend:first-child{padding-top:4px}
+.trend .row{flex-wrap:wrap;gap:4px 12px}
+.tv{white-space:nowrap}
+.tv b{font:700 26px/1 var(--f-num);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+svg.ch{width:100%;height:auto;display:block;touch-action:pan-y;overflow:visible}
+svg.ch .gl{stroke:var(--line);stroke-width:1}
+svg.ch .ax{fill:var(--muted);font:11px var(--f-body);font-variant-numeric:tabular-nums}
+svg.ch .ln{fill:none;stroke:var(--heart);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+svg.ch .pt{fill:var(--heart);stroke:var(--surface);stroke-width:2}
+svg.ch .hl{fill:none;stroke:var(--heart);stroke-width:1.5}
+svg.wkc .bar{fill:var(--accent)} svg.wkc .bar.ok{fill:var(--good)} svg.wkc .bar.cur{opacity:.45}
+svg.wkc .bar0{fill:var(--line)} svg.wkc .tgt{stroke:var(--soft);stroke-width:1;stroke-dasharray:4 4}
+svg.wkc .bv{fill:var(--ink);font:600 11px var(--f-num);font-variant-numeric:tabular-nums}
+.cap{color:var(--ink)}
+.sumpre{margin:0;padding:12px 14px;border-radius:10px;background:var(--fill2);font:14px/1.5 var(--f-body);white-space:pre-wrap;word-break:break-word;max-height:340px;overflow:auto}
+.wgrp{gap:0;padding:4px 0}
+.ghead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 16px 6px;flex-wrap:wrap}
+.ghead b{font-weight:600;font-size:17px}
+.ghead span{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.lrow{position:relative}
+.lrow::before{content:"";position:absolute;top:0;left:58px;right:0;border-top:.5px solid var(--line)}
+.lrow summary{list-style:none;display:grid;grid-template-columns:30px 1fr auto auto;gap:12px;align-items:center;padding:10px 16px;cursor:pointer}
+.lrow summary::-webkit-details-marker{display:none}
+.lrow summary > .ic{width:14px;height:14px;color:var(--soft);stroke-width:2.4;transition:transform .2s}
+.lrow[open] summary > .ic{transform:rotate(180deg)}
+.lt{display:flex;flex-direction:column;min-width:0}
+.lt b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lt span{font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dotw{width:8px;height:8px;border-radius:50%;background:var(--ease)}
+.lbody{display:flex;flex-direction:column;gap:10px;padding:0 16px 14px 58px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:3px 9px;border-radius:7px;background:var(--fill2);font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.chip.warn{background:color-mix(in srgb,var(--danger) 12%,transparent);color:var(--danger)}
+.empty{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.empty > .ic{width:30px;height:30px;color:var(--accent)}
+.opts.seven{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding:2px;border-radius:9px;background:var(--fill)}
+.opts.seven .opt{min-height:36px;border:0;border-radius:7px;background:transparent;color:var(--ink);font:500 13.5px var(--f-body);cursor:pointer;padding:0}
+.opts.seven .opt.on{background:var(--accent);color:#fff;font-weight:600}
+.tnote{font-size:14px;color:var(--ink2);background:var(--fill2);border-radius:10px;padding:10px 12px}
+.strh{display:flex;align-items:center;gap:12px}
+.strcnt{margin-left:auto;margin-right:8px;font:600 15px var(--f-num);color:var(--muted)}
+.strbody{display:flex;flex-direction:column;gap:12px;padding:0 16px 16px}
+.exl{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
+.exl li::marker{color:var(--str);font-weight:700}
+.exl b{display:block;font-weight:600}
+.exl span{font-size:14px;color:var(--muted)}
+@media (max-width:360px){.sum b{font-size:21px}.two{grid-template-columns:1fr}.stat .val{font-size:24px}.today h2{font-size:24px}}
+</style>
+</head>
+<body>
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-bike" viewBox="0 0 24 24"><circle cx="5.5" cy="16.5" r="3.5"/><circle cx="18.5" cy="16.5" r="3.5"/><path d="M5.5 16.5 9.5 8.5H15l3.5 8M9.5 8.5l2.5 8H5.5M7.5 5.5h3M14 8.5l-.8-3H11.5"/></symbol>
+  <symbol id="i-walk" viewBox="0 0 24 24"><circle cx="13" cy="4" r="2"/><path d="M9 21l2.5-6.5L14 17v4M7.5 12l2.5-4.5 3.5 1 2 3 2.5 1M11.5 14.5l1.5-6"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></symbol>
+  <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 5v14l9-7zM18 5v14"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M9.5 3h5"/></symbol>
+  <symbol id="i-log" viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3zM5 17a3 3 0 0 1 3-3h11"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M6 21V4M6 5h11l-2 4 2 4H6"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-repeat" viewBox="0 0 24 24"><path d="M4 11V9a3 3 0 0 1 3-3h12l-3-3M20 13v2a3 3 0 0 1-3 3H5l3 3"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M5.5 12H9l1.5-2.5 2 4 1.5-2h4"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></symbol>
+  <symbol id="i-ellip" viewBox="0 0 24 24"><ellipse cx="12" cy="15.5" rx="6.5" ry="3"/><path d="M4 21h16M9 21l1.5-3M15 21l-1.5-3M12 12.5V5M9 5h6M8.5 8l3.5-3 3.5 3"/></symbol>
+  <symbol id="i-rain" viewBox="0 0 24 24"><path d="M7 15h10a3.5 3.5 0 0 0 .4-7A5.5 5.5 0 0 0 7 8.3 3.4 3.4 0 0 0 7 15z"/><path d="M8.5 18l-1 2.5M12.5 18l-1 2.5M16.5 18l-1 2.5"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M4 17l6-6 4 4 6-7M15 8h5v5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M4 7l6 6 4-4 6 7M15 16h5v-5"/></symbol>
+  <symbol id="i-flat" viewBox="0 0 24 24"><path d="M4 12h16M16 8l4 4-4 4"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3zM12 10v4M12 17.5h.01"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-dumb" viewBox="0 0 24 24"><path d="M3 10v4M6 7.5v9M18 7.5v9M21 10v4M6 12h12"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-8 1.5 2H22"/></symbol>
+</svg>
+
+<div class="wrap">
+  <section class="stack" id="view-plan"></section>
+  <section class="stack" id="view-run" hidden></section>
+  <section class="stack" id="view-log" hidden></section>
+  <section class="stack" id="view-set" hidden></section>
+</div>
+
+<nav class="tabs" aria-label="Nézetek"><div class="tabs-in" role="tablist">
+  <button class="tab" role="tab" data-act="tab" data-tab="plan" aria-selected="true" type="button"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>Terv</button>
+  <button class="tab" role="tab" data-act="tab" data-tab="run" aria-selected="false" type="button"><svg class="ic" aria-hidden="true"><use href="#i-timer"/></svg>Edzés</button>
+  <button class="tab" role="tab" data-act="tab" data-tab="log" aria-selected="false" type="button"><svg class="ic" aria-hidden="true"><use href="#i-log"/></svg>Napló</button>
+  <button class="tab" role="tab" data-act="tab" data-tab="set" aria-selected="false" type="button"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg>Beállítások</button>
+</div></nav>
+
+<script>
+(function(){
+'use strict';
+
+/* ================= tárolás ================= */
+var KEY='alapozo-v2',OLDKEY='bringas-alapozo-v1';
+var store={v:2,log:[],metrics:[],defer:{},route:{name:'',km:null,sport:'bike'},sound:true,hrCap:null,resets:{},dismissed:{},active:null,
+  sports:{bike:true,walk:true,ellip:true},onboarded:false,days:5,block:1};
+function load(){
+  try{
+    var raw=localStorage.getItem(KEY);
+    if(raw){
+      var o=JSON.parse(raw);
+      if(o&&Array.isArray(o.log)){
+        store.log=o.log;store.sound=o.sound!==false;store.hrCap=o.hrCap||null;
+        store.resets=o.resets||{};store.dismissed=o.dismissed||{};store.active=o.active||null;store.voice=o.voice!==false;
+        store.metrics=Array.isArray(o.metrics)?o.metrics:[];
+        if(o.sports)store.sports=o.sports;
+        store.onboarded=o.onboarded!==undefined?!!o.onboarded:true;
+        store.days=[3,4,5].indexOf(o.days)>=0?o.days:5;store.block=o.block===2?2:1;
+        store.wdays=Array.isArray(o.wdays)?o.wdays:null;store.gapAck=o.gapAck||null;
+        if(o.route)store.route=o.route;
+        store.defer=o.defer||{};
+      }
+      return;
+    }
+    var old=localStorage.getItem(OLDKEY);
+    if(old){
+      var p=JSON.parse(old);
+      if(p&&Array.isArray(p.log)){
+        store.log=p.log.map(function(x){
+          return {id:x.id,date:x.date,kind:x.type==='ref'?'ref':'free',sport:'bike',sid:null,week:null,
+            title:x.type==='ref'?'Referenciakör':'Kerékpár (korábbi program)',min:x.min,sec:x.refSec||null,
+            full:!!x.full,rpe:x.rpe,breath:x.breath,hrAvg:x.hrAvg,hrMax:x.hrMax,km:null,note:x.note||''};
+        });
+        save();
+      }
+    }
+  }catch(e){}
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+load();
+
+/* ================= segédek ================= */
+var $=function(id){return document.getElementById(id);};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+var pad=function(n){return (n<10?'0':'')+n;};
+var mmss=function(s){s=Math.max(0,Math.round(s));var h=Math.floor(s/3600),m=Math.floor(s%3600/60);return (h?h+':'+pad(m):pad(m))+':'+pad(s%60);};
+var ic=function(id){return '<svg class="ic" aria-hidden="true"><use href="#'+id+'"/></svg>';};
+var fmtMin=function(m){m=Math.round(m);return m>=60?Math.floor(m/60)+' ó '+m%60+' p':m+' p';};
+var km=function(v){return String(Math.round(v*100)/100).replace('.',',')+' km';};
+var dayKey=function(d){d=new Date(d);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+function fmtDate(iso){
+  try{var d=new Date(iso);return d.toLocaleDateString('hu-HU',{weekday:'short',month:'short',day:'numeric'})+' · '+d.toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'});}
+  catch(e){return String(iso).slice(0,16);}
+}
+function numIn(id,lo,hi,dec){
+  var el=$(id);if(!el||el.value==='')return null;
+  var n=dec?parseFloat(String(el.value).replace(',','.')):parseInt(el.value,10);
+  return (isFinite(n)&&n>=lo&&n<=hi)?n:null;
+}
+
+/* ================= a program ================= */
+var SPORT={
+  bike:{name:'Kerékpár',short:'Kerékpár',icon:'i-bike',main:'Tekerés',ease:'Lassú gurulás',mainW:'tekerés',easeW:'gurulás',
+    cWarm:'Lazán tekerj, a pulzusod fokozatosan emelkedjen.',cMain:'Beszélgetős tempó: egész mondatokat tudj mondani.',cEase:'Szinte csak gurulj, lélegezz mélyen.'},
+  walk:{name:'Gyaloglás',short:'Gyaloglás',icon:'i-walk',main:'Tempós séta',ease:'Lassú séta',mainW:'tempós séta',easeW:'lassú séta',
+    cWarm:'Kényelmes sétatempó, lazítsd a vállad.',cMain:'Szaporább lépések, lendülő kar. Még tudj beszélgetni.',cEase:'Lassíts le, lélegezz mélyen és egyenletesen.'},
+  str:{name:'Erősítés',short:'Erősítés',icon:'i-dumb',main:'Erősítés',ease:'Pihenő',mainW:'erősítés',easeW:'pihenő',cWarm:'',cMain:'',cEase:''},
+  ellip:{name:'Elliptikus tréner',short:'Elliptikus',icon:'i-ellip',main:'Elliptikus',ease:'Lassú lépés',mainW:'elliptikus',easeW:'lassú lépés',
+    cWarm:'Kis ellenállás, lassú, kerek mozdulatok.',cMain:'Egyenletes tempó, kis-közepes ellenállás. Tudj beszélgetni.',cEase:'Vedd le az ellenállást, szinte csak lépegess.'}
+};
+function phName(t,sp){if(t==='warm')return 'Bemelegítés';if(t==='cool')return 'Levezetés';if(t==='tempo')return 'Tempós szakasz';return t==='main'?SPORT[sp].main:SPORT[sp].ease;}
+function phCue(t,sp){
+  if(t==='warm')return SPORT[sp].cWarm;
+  if(t==='tempo')return 'Emelj kicsit a tempón: már csak rövid mondatokat tudj mondani. Ne hajrázz.';
+  if(t==='cool')return 'Egyre lazábban, hagyd, hogy a légzésed lecsillapodjon.';
+  return t==='main'?SPORT[sp].cMain:SPORT[sp].cEase;
+}
+/* esőnap: ugyanaz az edzés, más mozgásformával; a tervben ugyanannak számít */
+function swapAs(s,sp){var o={};for(var k in s)o[k]=s[k];o.sport=sp;o.orig=s.sport;o.title=SPORT[sp].name+' (esőnap)';return o;}
+function phClass(t,sp){return (t==='warm'||t==='cool')?'soft':t==='tempo'?'tempo':(t==='main'?sp:'ease');}
+function phIcon(t,sp){return (t==='main'||t==='ease'||t==='tempo')?SPORT[sp].icon:'i-timer';}
+
+/* Az edzések paraméterekből épülnek: teljes idő (perc) és ismétléshossz (0 = folyamatos).
+   A heti percek simítva nőnek (legfeljebb ~15% hetente); kevesebb edzésnapnál a megmaradó edzések arányosan hosszabbak. */
+function S(w,sp,min,rep,title,key){return {kind:'plan',week:w,sport:sp,base:sp,baseTitle:title,title:title,min:min,rep:rep||0,key:!!key,warm:0,cool:0,blocks:[],phases:[],total:min*60};}
+var bike=function(w,min,rep){return S(w,'bike',min,rep,'Kerékpár');};
+var walk=function(w,min){return S(w,'walk',min,0,'Gyaloglás');};
+var longb=function(w,min,rep){return S(w,'bike',min,rep,'Hosszú kör',true);};
+/* iramváltó: könnyű szakaszok között rövid, kicsit tempósabb szakaszok (haladó blokk) */
+var iram=function(w,warm,reps,easy,tempo,cool){
+  var ph=[{t:'warm',s:warm*60}];
+  for(var i=0;i<reps;i++){ph.push({t:'main',s:easy*60});ph.push({t:'tempo',s:tempo*60});}
+  ph.push({t:'main',s:easy*60});ph.push({t:'cool',s:cool*60});
+  var tot=ph.reduce(function(a,p){return a+p.s;},0);
+  return {kind:'plan',key:true,iram:true,week:w,sport:'bike',base:'bike',baseTitle:'Iramváltó',title:'Iramváltó',min:tot/60,warm:warm,reps:reps,easy:easy,tempo:tempo,cool:cool,blocks:[],phases:ph,total:tot};
+};
+var ref=function(w,title,rid){return {kind:'ref',id:rid,week:w,sport:'bike',title:title,total:0};};
+function shape(it,min){
+  if(it.iram)return;
+  var warm=min>=40?5:(min>=30?4:3),cool=warm,main=min-warm-cool,blocks=[];
+  if(it.rep>0&&main>it.rep){
+    var n=Math.floor(main/(it.rep+1)),left=main-n*(it.rep+1);
+    for(var i=0;i<n;i++)blocks.push([it.rep,1]);
+    if(left>=3)blocks.push([left,0]);else{blocks[n-1][1]=0;cool+=left+1;}
+  }else blocks=[[main,0]];
+  var ph=[{t:'warm',s:warm*60}];
+  blocks.forEach(function(b){ph.push({t:'main',s:b[0]*60});if(b[1])ph.push({t:'ease',s:b[1]*60});});
+  ph.push({t:'cool',s:cool*60});
+  it.warm=warm;it.cool=cool;it.blocks=blocks;it.phases=ph;it.total=min*60;
+}
+
+var WEEKS=[
+  {n:1,block:1,note:'Ismerkedés. Rövid tekerési szakaszok pihenőkkel, a gyaloglás egyben megy.',items:[
+    ref(1,'Kiinduló mérés','ref0'), bike(1,25,5), walk(1,20), bike(1,25,5), walk(1,25), bike(1,25,5)]},
+  {n:2,block:1,note:'Hosszabb szakaszok, ugyanaz a kényelmes tempó.',items:[
+    bike(2,30,8), walk(2,25), bike(2,30,8), walk(2,25), bike(2,30,8)]},
+  {n:3,block:1,note:'Megjelenik a hosszú edzés. A hét végén félidős mérés.',items:[
+    bike(3,30,10), walk(3,30), bike(3,35,10), walk(3,25), longb(3,40,12), ref(3,'Félidős mérés','ref3')]},
+  {n:4,block:1,note:'Könnyebb hét, hogy a szervezet beépítse az eddigi munkát.',items:[
+    bike(4,30,12), walk(4,30), bike(4,30,12), walk(4,30)]},
+  {n:5,block:1,note:'Hosszú, egyenletes szakaszok. A tempó nem nő, csak az idő.',items:[
+    bike(5,35,15), walk(5,30), bike(5,35,15), walk(5,30), longb(5,45,20)]},
+  {n:6,block:1,note:'Fél óra egyhuzamban. A hét végén záró mérés ugyanazon a körön.',items:[
+    bike(6,40,0), walk(6,35), bike(6,40,0), walk(6,30), longb(6,50,25), ref(6,'Záró mérés','ref6')]},
+  {n:7,block:2,note:'Haladó blokk. Hosszabb, egyenletes edzések, a tempó még mindig beszélgetős.',items:[
+    bike(7,40,0), walk(7,40), bike(7,40,0), walk(7,40), longb(7,50,0)]},
+  {n:8,block:2,note:'Megjelenik az iramváltó edzés: rövid, kicsit tempósabb szakaszok, amelyekben már csak rövid mondatokat tudsz mondani. Ha orvosod pulzushatárt adott, ott se lépd át.',items:[
+    bike(8,45,0), walk(8,40), iram(8,5,4,4,2,5), walk(8,45), longb(8,55,0)]},
+  {n:9,block:2,note:'Több tempós szakasz, hosszabb hosszú edzés.',items:[
+    bike(9,45,0), walk(9,45), iram(9,5,5,4,2,5), walk(9,45), longb(9,60,0)]},
+  {n:10,block:2,note:'Könnyebb hét, hogy a szervezet beépítse az eddigi munkát.',items:[
+    bike(10,40,0), walk(10,40), iram(10,5,3,4,2,5), walk(10,40)]},
+  {n:11,block:2,note:'A tempós szakaszok 3 percesek lesznek. A hosszú edzés már egy óra fölött.',items:[
+    bike(11,50,0), walk(11,50), iram(11,5,5,3,3,5), walk(11,50), longb(11,65,0)]},
+  {n:12,block:2,note:'Levezető hét: négy edzés, a hosszú 70 perc. A végén haladó záró mérés ugyanazon a körön.',items:[
+    bike(12,50,0), walk(12,50), iram(12,5,6,3,3,5), longb(12,70,0), ref(12,'Haladó záró mérés','ref12')]}
+];
+var ALLITEMS=[],ALL=[];
+WEEKS.forEach(function(w){w.items.forEach(function(s,i){if(!s.id)s.id='w'+w.n+'-'+(i+1);ALLITEMS.push(s);});});
+var byId=function(id){for(var i=0;i<ALLITEMS.length;i++)if(ALLITEMS[i].id===id)return ALLITEMS[i];return null;};
+var weekByN=function(n){for(var i=0;i<WEEKS.length;i++)if(WEEKS[i].n===n)return WEEKS[i];return null;};
+var isPlan=function(s){return s.kind==='plan';};
+/* edzésnapok: a hét napjai (0 = hétfő); 3-5 nap választható */
+var WD=['H','K','Sze','Cs','P','Szo','V'],WDL=['hétfő','kedd','szerda','csütörtök','péntek','szombat','vasárnap'];
+var WDEF={3:[0,2,5],4:[0,2,4,5],5:[0,1,3,4,5]};
+function wdays(){var a=(store.wdays&&store.wdays.length>=3&&store.wdays.length<=5)?store.wdays.slice():WDEF[store.days||5].slice();return a.sort(function(x,y){return x-y;});}
+var todayIdx=function(){return (new Date().getDay()+6)%7;};
+/* kevesebb napnál a kulcsedzés (hosszú, iramváltó) marad, a többiből az elsők */
+function activeItems(w){
+  var pl=w.items.filter(isPlan),N=store.days||5;
+  if(pl.length<=N)return w.items.slice();
+  var keep={},cnt=0;
+  pl.forEach(function(s){if(s.key&&cnt<N){keep[s.id]=1;cnt++;}});
+  pl.forEach(function(s){if(!keep[s.id]&&cnt<N){keep[s.id]=1;cnt++;}});
+  return w.items.filter(function(s){return s.kind==='ref'||keep[s.id];});
+}
+var DAYF={3:.8,4:.9,5:1};
+function rebuildPlan(){
+  store.days=wdays().length;
+  ALL.length=0;
+  WEEKS.forEach(function(w){
+    var act=activeItems(w),full=w.items.filter(isPlan),ap=act.filter(isPlan);
+    var T5=full.reduce(function(a,s){return a+s.min;},0),target=T5*DAYF[store.days];
+    var fixed=ap.filter(function(s){return s.iram;}).reduce(function(a,s){return a+s.min;},0);
+    var flex=ap.filter(function(s){return !s.iram;}).reduce(function(a,s){return a+s.min;},0);
+    var sc=flex?Math.max(1,Math.min(1.4,(target-fixed)/flex)):1;
+    w.items.forEach(function(it){
+      if(!isPlan(it)||it.iram)return;
+      var m=act.indexOf(it)>=0?Math.round(it.min*sc/5)*5:it.min;
+      shape(it,Math.min(m,it.key?75:60));
+    });
+    w.act=act;
+    if(w.block===store.block)act.forEach(function(s){ALL.push(s);});
+  });
+}
+function blockWeeks(){return WEEKS.filter(function(w){return w.block===store.block;});}
+function dayOf(it){
+  if(!isPlan(it))return null;
+  var w=weekByN(it.week),pl=(w.act||w.items).filter(isPlan),i=pl.indexOf(it),d=wdays();
+  return d[Math.max(0,Math.min(i,d.length-1))];
+}
+function dayLabel(it){
+  if(it.kind==='ref')return it.id==='ref0'?'Kezdéskor':'A hét végén';
+  var d=dayOf(it);return d==null?'':WDL[d].charAt(0).toUpperCase()+WDL[d].slice(1);
+}
+rebuildPlan();
+/* a terv a választott mozgásformákhoz igazodik: ami nincs, azt a legközelebbi elérhető váltja ki */
+var FALLBACK={bike:['ellip','walk'],walk:['ellip','bike'],ellip:['bike','walk']};
+function hasSport(k){return !!store.sports[k];}
+function pickSport(base){if(hasSport(base))return base;var f=FALLBACK[base];for(var i=0;i<f.length;i++)if(hasSport(f[i]))return f[i];return base;}
+function applySports(){
+  ALLITEMS.forEach(function(it){
+    if(it.kind!=='plan')return;
+    var sp=pickSport(it.base);it.sport=sp;
+    it.title=it.baseTitle==='Hosszú kör'?(sp==='bike'?'Hosszú kör':sp==='walk'?'Hosszú séta':'Hosszú elliptikus'):
+      it.baseTitle==='Iramváltó'?'Iramváltó '+SPORT[sp].short.toLowerCase():SPORT[sp].name;
+  });
+}
+function canRain(s){return hasSport('ellip')&&s&&s.kind==='plan'&&s.sport!=='ellip';}
+applySports();
+function routeSet(){return !!(store.route.name||store.route.km);}
+function routeLabel(){var r=store.route,p=[];if(r.name)p.push(r.name);if(r.km)p.push(km(r.km));return p.join(', ');}
+function refTxt(noSport){return routeSet()?'a referenciakört ('+routeLabel()+')'+(noSport?'':' '+(store.route.sport==='walk'?'gyalog':'kerékpárral'))+', kényelmes tempóban':'a választott referenciakört kényelmes tempóban';}
+
+function describe(s){
+  if(s.kind==='ref')return 'Stopperes mérés: '+refTxt()+'.';
+  if(s.iram)return s.warm+' p bemelegítés · '+s.reps+' × ('+s.easy+' p '+SPORT[s.sport].mainW+' + '+s.tempo+' p tempós) · '+s.easy+' p '+SPORT[s.sport].mainW+' · '+s.cool+' p levezetés';
+  var parts=[],b=s.blocks,i=0,mainW=SPORT[s.sport].mainW,easeW=SPORT[s.sport].easeW;
+  while(i<b.length){
+    var j=i;
+    while(j+1<b.length&&b[j+1][0]===b[i][0]&&b[j+1][1]===b[i][1])j++;
+    var c=j-i+1,r=b[i][0],e=b[i][1];
+    parts.push(e?(c>1?c+' × (':'')+r+' p '+mainW+' + '+e+' p '+easeW+(c>1?')':''):(c>1?c+' × ':'')+r+' p '+mainW);
+    i=j+1;
+  }
+  return s.warm+' p bemelegítés · '+parts.join(' · ')+' · '+s.cool+' p levezetés';
+}
+function afterReset(w,date){var r=store.resets[w];return !r||date>r;}
+function isDone(s){return store.log.some(function(x){return x.sid===s.id&&x.full&&(s.kind==='ref'||afterReset(s.week,x.date));});}
+function nextItem(){
+  var t=dayKey(Date.now()),def=null;
+  for(var i=0;i<ALL.length;i++){
+    var it=ALL[i];if(isDone(it))continue;
+    if(it.kind==='ref'&&store.defer[it.id]===t){if(!def)def=it;continue;}
+    return it;
+  }
+  return def;
+}
+function doneSport(it){for(var i=store.log.length-1;i>=0;i--){var x=store.log[i];if(x.sid===it.id&&x.full&&(it.kind==='ref'||afterReset(it.week,x.date)))return x.sport||it.sport;}return it.sport;}
+function doneCount(){return ALL.filter(isDone).length;}
+
+/* Heti tanács: ha az előző héten sokszor elfogyott a levegő, ismétlés javasolt */
+function advice(){
+  var nx=nextItem();if(!nx)return null;
+  var cw=nx.week,pw=cw-1;
+  if(pw<1||store.dismissed[pw])return null;
+  var wcw=weekByN(cw),started=wcw?wcw.act.some(isDone):true;
+  if(!weekByN(pw)||weekByN(pw).block!==store.block)return null;
+  if(started)return null;
+  var E=store.log.filter(function(x){return x.week===pw&&x.kind==='plan'&&afterReset(pw,x.date);});
+  if(!E.length)return null;
+  var hard=E.filter(function(x){return x.breath==='none';}).length;
+  var R=E.filter(function(x){return x.rpe;});
+  var avg=R.length?R.reduce(function(a,x){return a+x.rpe;},0)/R.length:0;
+  if(hard>=2||avg>=7)return {pw:pw,hard:hard,avg:avg};
+  return null;
+}
+function last7(){
+  var lim=Date.now()-7*864e5;
+  return store.log.filter(function(x){return x.kind!=='str'&&new Date(x.date).getTime()>=lim;}).reduce(function(a,x){return a+(x.min||0);},0);
+}
+function trainedToday(){var t=dayKey(Date.now());return store.log.some(function(x){return x.kind!=='str'&&dayKey(x.date)===t;});}
+function planDoneToday(){var t=dayKey(Date.now());return store.log.some(function(x){return x.kind==='plan'&&x.full&&dayKey(x.date)===t;});}
+function weekQuotaMet(){var s=wkStart(Date.now());return store.log.filter(function(x){return x.kind==='plan'&&x.full&&new Date(x.date).getTime()>=s;}).length>=wdays().length;}
+/* kimaradás: 8+ nap után egy, 15+ nap után két hét visszalépést javasol */
+function gapInfo(){
+  var L=store.log.filter(function(x){return x.kind!=='str';});if(!L.length)return null;
+  var last=Math.max.apply(null,L.map(function(x){return new Date(x.date).getTime();})),days=Math.floor((Date.now()-last)/DAY),nx=nextItem();
+  if(days<8||!nx||store.gapAck===dayKey(last))return null;
+  var first=blockWeeks()[0].n;
+  return {days:days,back:Math.min(days>=15?2:1,nx.week-first),last:dayKey(last),nx:nx};
+}
+
+/* ================= edzés állapot ================= */
+var run={mode:'idle',rain:false,force:false,kind:null,sel:null,session:null,sport:'bike',cum:[],total:0,base:0,resumeAt:0,paused:false,idx:-1,lastSec:-1,timer:0,fb:null,rpe:0,breath:'',fills:[]};
+var elapsedMs=function(){return run.base+(run.paused?0:Date.now()-run.resumeAt);};
+function persist(){
+  store.active=(run.mode==='run'||run.mode==='watch')?{mode:run.mode,kind:run.kind,sid:run.session?run.session.id:null,sport:run.sport,base:run.base,resumeAt:run.resumeAt,paused:run.paused}:null;
+  save();
+}
+
+/* hang, rezgés, ébren tartás */
+var actx=null,wl=null;
+/* iPhone: a hangot érintés oldja fel; az audioSession 'playback' módja a néma kapcsoló mellett is szólhat (újabb iOS) */
+function ensureAudio(){
+  try{if(navigator.audioSession&&navigator.audioSession.type!=='playback')navigator.audioSession.type='playback';}catch(e){}
+  try{
+    if(!actx){var C=window.AudioContext||window.webkitAudioContext;if(C)actx=new C();}
+    if(actx&&actx.state!=='running')actx.resume();
+    if(actx&&!actx._unl){var b=actx.createBuffer(1,1,22050),s=actx.createBufferSource();s.buffer=b;s.connect(actx.destination);s.start(0);actx._unl=true;}
+  }catch(e){}
+}
+document.addEventListener('touchend',ensureAudio,{passive:true});
+document.addEventListener('pointerdown',ensureAudio,{passive:true});
+var huVoice=null;
+function pickVoice(){try{var v=speechSynthesis.getVoices();for(var i=0;i<v.length;i++)if(/^hu/i.test(v[i].lang)){huVoice=v[i];break;}}catch(e){}}
+try{pickVoice();speechSynthesis.onvoiceschanged=pickVoice;}catch(e){}
+function say(t){
+  if(!store.sound||store.voice===false)return;
+  try{var u=new SpeechSynthesisUtterance(t);u.lang='hu-HU';if(huVoice)u.voice=huVoice;u.rate=1;u.volume=1;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}
+}
+function beep(f,d){
+  if(!store.sound||!actx)return;
+  try{var o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime;o.type='triangle';o.frequency.value=f;g.gain.value=0.0001;o.connect(g);g.connect(actx.destination);
+    g.gain.exponentialRampToValueAtTime(0.8,t+0.01);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.start(t);o.stop(t+d+0.03);}catch(e){}
+}
+function vib(p){try{if(store.sound&&navigator.vibrate)navigator.vibrate(p);}catch(e){}}
+function cue(t){
+  if(t==='main'||t==='tempo'){beep(880,.15);setTimeout(function(){beep(1100,.22);},190);vib([150,80,150]);}
+  else if(t==='ease'){beep(520,.35);vib(300);}
+  else{beep(660,.22);vib(200);}
+}
+function fanfare(){beep(784,.15);setTimeout(function(){beep(988,.15);},200);setTimeout(function(){beep(1175,.35);},400);vib([200,100,200,100,300]);}
+function lock(){try{if(navigator.wakeLock&&navigator.wakeLock.request)navigator.wakeLock.request('screen').then(function(l){wl=l;}).catch(function(){});}catch(e){}}
+function unlock(){try{if(wl){wl.release();wl=null;}}catch(e){}}
+document.addEventListener('visibilitychange',function(){if(!document.hidden){ensureAudio();if(run.mode==='run'||run.mode==='watch'){lock();tick();}}});
+
+/* kétlépéses megerősítés */
+var conf=null,confT=0;
+function refreshArmed(){
+  var els=document.querySelectorAll('[data-key]');
+  for(var i=0;i<els.length;i++){var el=els[i],l=el.querySelector('.lbl');if(l)l.textContent=(el.getAttribute('data-key')===conf)?'Biztosan?':el.getAttribute('data-label');}
+}
+function arm(key,fn){
+  if(conf===key){conf=null;clearTimeout(confT);fn();return;}
+  conf=key;clearTimeout(confT);confT=setTimeout(function(){conf=null;refreshArmed();},4000);refreshArmed();
+}
+
+/* ================= nézetek ================= */
+function setTab(t){
+  var tabs=document.querySelectorAll('.tab');
+  for(var i=0;i<tabs.length;i++)tabs[i].setAttribute('aria-selected',tabs[i].getAttribute('data-tab')===t?'true':'false');
+  ['plan','run','log','set'].forEach(function(v){$('view-'+v).hidden=(v!==t);});
+}
+function renderSound(){var a=$('sndOn');if(a)a.checked=!!store.sound;}
+
+/* ---------- Terv ---------- */
+function ringSvg(f,cls){
+  var r=16,c=2*Math.PI*r;f=Math.max(0,Math.min(1,f||0));
+  return '<svg class="ring" viewBox="0 0 40 40" aria-hidden="true"><circle class="rt" cx="20" cy="20" r="'+r+'"/>'+
+    (f>0?'<circle class="rp'+(cls?' '+cls:'')+'" cx="20" cy="20" r="'+r+'" stroke-dasharray="'+c.toFixed(2)+'" stroke-dashoffset="'+(c*(1-f)).toFixed(2)+'" transform="rotate(-90 20 20)"/>':'')+'</svg>';
+}
+function todayHtml(s){
+  var cls=s.kind==='ref'?'ref':s.sport,wk=s.week-(store.block-1)*6,d=dayOf(s),ti=todayIdx(),note='',lab='Következő';
+  if(s.kind==='plan'&&planDoneToday())note='Mára megvan az edzés. Ez a következő edzésnapon jön.';
+  else if(s.kind==='plan'&&weekQuotaMet())note='Ezen a héten megvan a heti adag. A következő edzés jövő héten jön, addig pihenj vagy sétálj.';
+  else if(s.kind==='plan'&&d===ti)lab='Mai edzés';
+  else if(s.kind==='plan'&&wdays().indexOf(ti)<0)note='Ma pihenőnap a terved szerint. Ha mégis mozognál, ez az edzés jön.';
+  return '<section class="today p-'+cls+'"><div class="tk">'+ic(s.kind==='ref'?'i-flag':SPORT[s.sport].icon)+'<span>'+lab+' · '+wk+'. hét'+(store.block===2?' · haladó':'')+(d!=null&&lab!=='Mai edzés'?' · '+WDL[d]:'')+'</span></div>'+
+    '<h2>'+esc(s.title)+(s.kind==='ref'?'':' · '+s.total/60+' perc')+'</h2><p class="tmeta2">'+esc(describe(s))+'</p>'+
+    (note?'<p class="tnote">'+note+'</p>':'')+
+    (s.kind==='plan'?'<div class="segs" aria-hidden="true">'+segsHtml(s,true)+'</div>':'')+
+    '<div class="today-act"><button class="btn primary" data-act="pick" data-sid="'+s.id+'" type="button">'+ic(s.kind==='ref'?'i-flag':'i-play')+'<span>'+(s.kind==='ref'?'Mérés':'Edzés')+'</span></button>'+
+    (s.kind==='plan'?(canRain(s)?'<button class="btn rainbtn" data-act="rainpick" data-sid="'+s.id+'" type="button" aria-label="Esőnap: elliptikus tréner helyette" title="Esőnap">'+ic('i-rain')+'</button>':''):
+      '<button class="btn rainbtn" data-act="defer" data-sid="'+s.id+'" type="button" aria-label="Esőnap: a mérés holnapra csúszik" title="Esőnap">'+ic('i-rain')+'</button>')+'</div></section>';
+}
+function routeCard(nx){
+  var d=doneCount(),n=ALL.length;
+  return '<div class="card routecard"><div class="row"><span class="eyebrow">Útvonal · '+(store.block===2?'haladó blokk':'alapozó')+'</span><span class="muted small">'+d+' / '+n+' állomás</span></div>'+routeSvg(nx)+
+    '<div class="hlegend">'+['bike','walk','ellip'].filter(hasSport).map(function(k){return '<span><i style="background:var(--n-'+k+')"></i>'+SPORT[k].short+'</span>';}).join('')+
+    '<span><i style="background:var(--n-ref);border-radius:2px;transform:rotate(45deg)"></i>Mérőpont</span></div></div>';
+}
+var STRX=[['Guggolás székre','Ülj le, állj fel, 10-12 ismétlés'],['Fekvőtámasz falnál vagy asztalnál','8-12 ismétlés'],['Hátralépéses kitörés','8 ismétlés lábanként, kapaszkodhatsz'],
+  ['Egykezes evezés','Kézisúlyzóval vagy vizes palackkal, 10 ismétlés karonként'],['Csípőemelés hanyatt fekve','12 ismétlés'],['Alkartámasz','20-30 másodperc, térden is jó']];
+function strCard(){
+  var s=wkStart(Date.now()),c=store.log.filter(function(x){return x.kind==='str'&&new Date(x.date).getTime()>=s;}).length,done=c>=2;
+  return '<details class="card guide strc"><summary><span class="strh"><span class="mico p-str'+(done?' on':'')+'">'+ic(done?'i-check':'i-dumb')+'</span><span><span class="eyebrow">Kiegészítő · heti 2×</span><h3>Erősítés és nyújtás</h3></span></span>'+
+    '<span class="strcnt">'+Math.min(c,9)+'/2</span>'+ic('i-chev')+'</summary><div class="strbody">'+
+    '<p class="muted small">Kb. 15 perc, egy nem-edzésnapon vagy edzés után. Két kör, a gyakorlatok között fél perc, a körök között 1 perc pihenő. Nem számít bele a heti 150 percbe.</p>'+
+    '<ol class="exl">'+STRX.map(function(e){return '<li><b>'+e[0]+'</b><span>'+e[1]+'</span></li>';}).join('')+'</ol>'+
+    '<p class="small"><b>Végül nyújtás:</b> comb elöl és hátul, vádli, mellkas, 20-30 másodpercig, rugózás nélkül.</p>'+
+    '<p class="hint">Lélegezz folyamatosan, erőkifejtésnél fújd ki a levegőt, ne tartsd vissza. Fájdalomig ne menj el.</p>'+
+    '<button class="btn primary wide" data-act="strdone" type="button">'+ic('i-check')+'<span>Elvégeztem</span></button></div></details>';
+}
+function statsHtml(){
+  var m=last7(),d=doneCount(),n=ALL.length;
+  return '<div class="stats"><div class="stat"><span class="lab">Elmúlt 7 nap</span><div class="ringrow">'+ringSvg(m/150,m>=150?'':'acc')+'<span class="val">'+Math.round(m)+'<small> / 150 p</small></span></div></div>'+
+    '<div class="stat"><span class="lab">'+(store.block===2?'Haladó blokk':'Alapozó')+'</span><span class="val">'+d+'<small> / '+n+' kész</small></span><div class="pbar"><i style="width:'+(n?d/n*100:0).toFixed(1)+'%"></i></div></div></div>';
+}
+function weeksHtml(nx){
+  var h='';
+  blockWeeks().forEach(function(w){
+    var its=w.act,d=its.filter(isDone).length,mins=its.reduce(function(a,s){return a+s.total;},0)/60,cur=nx&&nx.week===w.n,wn=w.n-(store.block-1)*6,all=its.length&&d===its.length;
+    h+='<details class="wacc"'+(cur?' open':'')+'><summary class="wsum"><span class="wbadge">'+ringSvg(its.length?d/its.length:0,all?'':'acc')+(all?ic('i-check'):'<b>'+wn+'</b>')+'</span>'+
+       '<span class="wt"><b>'+wn+'. hét'+(cur?'<span class="tag">Most</span>':'')+'</b><span class="sub">'+esc(w.note)+'</span></span><span class="cnt">'+d+'/'+its.length+'</span>'+ic('i-chev')+'</summary><div class="wbody">';
+    its.forEach(function(s){
+      var done=isDone(s),isNext=nx&&nx.id===s.id,cls=s.kind==='ref'?'ref':(done?doneSport(s):s.sport),icn=s.kind==='ref'?'i-flag':SPORT[s.sport].icon;
+      h+='<div class="sess'+(isNext?' next':'')+'"><span class="mico p-'+cls+(done?' on':'')+'">'+ic(done?'i-check':icn)+'</span>'+
+         '<div class="st"><b>'+esc(s.title)+(s.kind==='ref'?'':' · '+s.total/60+' perc')+(isNext?'<span class="tag">Következő</span>':'')+'</b><span class="meta">'+esc((dayLabel(s)?dayLabel(s)+' · ':'')+describe(s))+'</span></div>'+
+         '<button class="btn sm" data-act="pick" data-sid="'+s.id+'" type="button">'+(done?'Újra':(s.kind==='ref'?'Mérés':'Indítás'))+'</button></div>';
+    });
+    h+='<p class="wfoot">'+its.length+' alkalom · '+mins+' perc</p></div></details>';
+  });
+  return '<div class="sect"><div class="eyebrow">'+(store.block===2?'Haladó blokk · 7–12. hét':'A hat hét')+'</div><div class="list">'+h+'</div></div>';
+}
+function renderPlan(){
+  var nx=nextItem(),ad=advice(),h='<h1 class="ltitle">Terv</h1>';
+  if(!store.onboarded)h+=onboardHtml();
+  if(!nx&&store.block===1)h+=blockDoneCard();
+  var gp=gapInfo();
+  if(gp)h+='<div class="card advice"><div class="eyebrow">Kimaradás</div><h3>'+gp.days+' napja nem volt edzés</h3>'+
+    '<p>Kihagyás után az állóképesség kicsit visszaesik, ezért érdemes óvatosabban folytatni.'+(gp.back?' Javaslat: lépj vissza '+(gp.back===2?'két':'egy')+' hetet, a már elvégzett edzéseket ott újra megcsinálod.':' Az első hetet kezdd lassabban.')+'</p>'+
+    '<div class="btns">'+(gp.back?'<button class="btn primary" data-act="gapback" type="button">'+ic('i-repeat')+'<span>Visszalépés '+(gp.back===2?'két':'egy')+' héttel</span></button>':'')+
+    '<button class="btn" data-act="gapok" type="button"><span>Folytatom innen</span></button></div></div>';
+  if(nx)h+=todayHtml(nx);
+  h+=routeCard(nx);
+  h+=statsHtml();
+  if(ad){
+    h+='<div class="card advice"><div class="eyebrow">Javaslat</div><h3>Ismételd meg a '+(ad.pw-(store.block-1)*6)+'. hetet</h3>'+
+       '<p>Az előző héten '+(ad.hard>=2?ad.hard+' alkalommal alig tudtál beszélni':'átlagosan '+ad.avg.toFixed(1).replace('.',',')+' volt a megterhelés')+'. Az állóképesség gyorsabban fejlődik, ha a terhelés kényelmes marad, ezért érdemes még egy hetet ezen a szinten tölteni.</p>'+
+       '<div class="btns"><button class="btn primary" data-act="repeat" data-w="'+ad.pw+'" type="button">'+ic('i-repeat')+'<span>A hét ismétlése</span></button>'+
+       '<button class="btn" data-act="dismiss" data-w="'+ad.pw+'" type="button"><span>Továbblépek</span></button></div></div>';
+  }
+  if(store.onboarded&&metricsDue())h+='<div class="card"><div class="row"><div><div class="eyebrow">Esedékes</div><h3>Heti mérőszámok</h3></div><span class="mico p-heart on">'+ic('i-heart')+'</span></div>'+
+    '<p class="muted small">Testsúly és nyugalmi pulzus, okosórával a séta-pulzus és a VO2max is. Ezekből látszik, hogyan fejlődsz.</p>'+
+    '<button class="btn" data-act="gometrics" type="button"><span>Beírom most</span></button></div>';
+  h+=weeksHtml(nx);
+  h+=strCard();
+  h+='<details class="card guide"><summary><span><span class="eyebrow">Szabályok</span><h3>Így edzél</h3></span>'+ic('i-chev')+'</summary><ul>'+
+     '<li>Heti legalább 150 perc mérsékelt mozgás a cél. A gyaloglás is beleszámít.</li>'+
+     '<li>Beszélgetős teszt: edzés közben egész mondatokat tudj mondani. Ha nem megy, lassíts.</li>'+
+     '<li>A program váltogatja a mozgásformákat. Két edzésnap között legyen egy könnyebb nap vagy pihenő.</li>'+
+     (hasSport('ellip')?'<li>Esőnapon az elliptikus tréner kiváltja az aznapi edzést, ugyanazzal a felépítéssel és időtartammal.</li>':'')+
+     '<li>'+(store.block===2?'Hajrá nincs. Az iramváltó edzés tempós szakaszaiban is legfeljebb annyira gyorsíts, hogy rövid mondatokat még tudj mondani.':'Nincs hajrá, emelkedő vagy intervallum. A program a tempó helyett az időt növeli.')+'</li>'+
+     '<li>Ha krónikus betegséged van, rendszeresen gyógyszert szedsz, vagy régóta nem mozogtál, kezdés előtt beszélj az orvosoddal.</li>'+
+     '<li>Mellkasi szorítás, szokatlan fulladás vagy szédülés esetén állj meg, és kérj orvosi tanácsot.</li></ul></details>';
+  $('view-plan').innerHTML=h;
+}
+/* ---------- Beállítások ---------- */
+function swRow(id,label,on,icn,cls){
+  return '<label class="li" for="'+id+'"><span class="mico '+cls+'">'+ic(icn)+'</span><span>'+label+'</span><input class="sw" id="'+id+'" type="checkbox" role="switch"'+(on?' checked':'')+'></label>';
+}
+function renderSettings(){
+  var h='<h1 class="ltitle">Beállítások</h1>';
+  h+='<div class="sect"><div class="eyebrow">Program</div>'+blockPicker()+'<p class="sect-foot">A haladó blokk az alapozóra épít: hosszabb edzések és heti egy iramváltó edzés. A napló és a mérések mindkettőben megmaradnak.</p></div>';
+  h+='<div class="sect"><div class="eyebrow">Edzésnapok · '+wdays().length+' nap</div>'+daysPicker()+'<p class="sect-foot">3-5 napot válassz. A terv ezekre a napokra osztja az edzéseket, a hosszú edzés a hét utolsó edzésnapjára kerül. Kevesebb napnál az edzések arányosan hosszabbak, hogy a heti idő a cél közelében maradjon.</p></div>';
+  h+='<div class="sect"><div class="eyebrow">Mozgásformák</div>'+sportPicker()+'<p class="sect-foot">Amit nem jelölsz be, azt a terv a legközelebbi elérhető mozgásformával váltja ki.</p></div>';
+  h+='<div class="sect"><div class="eyebrow">Hang</div><div class="list">'+
+     swRow('sndOn','Hangjelzések',store.sound,'i-sound','p-accent')+swRow('voiceOn','Szakaszok bemondása',store.sound&&store.voice!==false,'i-timer','p-accent')+
+     '<button class="li li-btn" data-act="sndtest" type="button"><span class="mico p-good">'+ic('i-play')+'</span><span style="color:var(--accent)">Hangpróba</span><span></span></button></div>'+
+     '<p class="sect-foot">iPhone-on a néma mód elnémíthatja a hangot. Rezgést a böngésző iPhone-on nem tud adni, és lezárt képernyőnél az iOS megállítja a hangot, ezért edzés közben hagyd bekapcsolva a kijelzőt.</p></div>';
+  h+='<div class="sect"><div class="eyebrow">Pulzus</div><div class="list"><label class="li" for="hrCap"><span class="mico p-heart">'+ic('i-heart')+'</span><span>Felső pulzushatár</span>'+
+     '<input class="inl" id="hrCap" type="number" inputmode="numeric" min="80" max="200" placeholder="nincs" value="'+(store.hrCap||'')+'"></label></div>'+
+     '<p class="sect-foot">Ha orvosod vagy edződ megadta. Edzés közben látszik, és a napló jelzi, ha a maxpulzus fölé ment.</p></div>';
+  h+='<div class="sect"><div class="eyebrow">Adatok</div><div class="list">'+
+     '<button class="li li-btn" data-act="export" type="button"><span class="mico p-accent">'+ic('i-copy')+'</span><span>Biztonsági mentés másolása</span><span></span></button>'+
+     '<button class="li li-btn" data-act="showimport" type="button"><span class="mico p-accent">'+ic('i-upload')+'</span><span>Visszaállítás mentésből</span><span></span></button>'+
+     '<button class="li li-btn danger" data-act="wipe" data-key="wipe" data-label="Összes adat törlése" type="button"><span class="mico p-danger">'+ic('i-trash')+'</span><span class="lbl">Összes adat törlése</span><span></span></button></div>'+
+     '<p class="hint" id="bkMsg" style="padding-inline:16px"></p><textarea id="bkText" hidden aria-label="Biztonsági mentés szövege"></textarea>'+
+     '<button class="btn primary" id="bkLoad" hidden data-act="import" data-key="import" data-label="Mentés betöltése" type="button"><span class="lbl">Mentés betöltése</span></button>'+
+     '<p class="sect-foot">Az adataid csak ezen a telefonon, ebben a böngészőben tárolódnak. Mentést időnként érdemes másolni, például a Jegyzetekbe. A törlés újrakezdéshez jó, vagy ha más fogja használni ezen a telefonon.</p></div>';
+  $('view-set').innerHTML=h;
+}
+
+/* ---------- Edzés ---------- */
+function segsHtml(s,full){
+  return s.phases.map(function(p){return '<div class="seg p-'+phClass(p.t,s.sport)+'" style="flex:'+p.s+'"><i'+(full?' style="width:100%"':'')+'></i></div>';}).join('');
+}
+function hrLine(){return store.hrCap?'<span>Pulzushatár: <b>'+store.hrCap+'</b></span>':'';}
+function renderRun(){
+  var v=$('view-run'),h='',s;
+  if(run.mode==='idle'){
+    h+='<h1 class="ltitle">Edzés</h1>';
+    s=run.sel||nextItem();run.sel=s;
+    if(s&&s.kind==='plan'&&planDoneToday())h+='<div class="card"><p class="small">Ma már megvolt a tervbeli edzés. Ha most is edzel, extra edzésként kerül a naplóba, és a terv holnap folytatódik. A fejlődés a pihenőnapon történik.</p>'+
+      '<button class="btn" data-act="force" type="button">'+(run.force?ic('i-check')+'<span>A tervbe számít</span>':'<span>Mégis a tervbe számítsa</span>')+'</button></div>';
+    else if(trainedToday())h+='<div class="card"><p class="small muted">Ma már mozogtál. A következő tervbeli edzést holnapra érdemes tenni.</p></div>';
+    if(s&&s.kind==='plan'){
+      var orig=s;if(!canRain(orig))run.rain=false;s=run.rain?swapAs(orig,'ellip'):orig;
+      h+='<div class="card'+(run.rain?' p-ellip':'')+'"><div class="eyebrow">'+(orig===nextItem()?'Következő edzés':'Kiválasztott edzés')+'</div><h2>'+s.week+'. hét · '+esc(s.title)+' · '+s.total/60+' perc</h2>'+
+         (canRain(orig)?'<div class="opts two-up swap" role="group" aria-label="Mozgásforma ma"><button class="opt'+(run.rain?'':' on')+'" type="button" data-act="rain" data-v="0" aria-pressed="'+!run.rain+'">'+ic(SPORT[orig.sport].icon)+SPORT[orig.sport].name+'</button>'+
+         '<button class="opt'+(run.rain?' on':'')+'" type="button" data-act="rain" data-v="1" aria-pressed="'+run.rain+'">'+ic('i-rain')+'Esőnap: elliptikus</button></div>':'')+
+         (run.rain?'<p class="hint">Ugyanaz a felépítés és időtartam, mint a '+SPORT[orig.sport].name.toLowerCase()+'. A tervben teljesítettnek számít. Az elliptikuson ugyanakkora érzett terhelésnél magasabb lehet a pulzus, ezért itt is a beszélgetős teszt a mérce.</p>':'')+
+         '<p class="muted">'+esc(describe(s))+'</p><div class="segs" aria-hidden="true">'+segsHtml(s,true)+'</div>'+
+         '<div class="legend"><span class="p-soft"><i></i>Bemelegítés, levezetés</span><span class="p-'+s.sport+'"><i></i>'+phName('main',s.sport)+'</span>'+(s.blocks.some(function(b){return b[1];})?'<span class="p-ease"><i></i>'+phName('ease',s.sport)+'</span>':'')+(s.iram?'<span class="p-tempo"><i></i>Tempós szakasz</span>':'')+'</div>'+
+         (s.iram?'<p class="hint">A tempós szakaszban gyorsíts egy kicsit: rövid mondatokat még tudj mondani. Ha elfogy a levegő, vedd vissza. Ha orvosod pulzushatárt adott, itt se lépd át.</p>':'')+
+         '<button class="btn primary wide" data-act="start" type="button">'+ic('i-play')+'<span>Indítás</span></button></div>';
+    }else if(s&&s.kind==='ref'){
+      h+='<div class="card"><div class="eyebrow">'+(s===nextItem()?'Következő':'Kiválasztva')+' · '+s.week+'. hét</div><h2>'+esc(s.title)+'</h2><p class="muted">Stopperrel méred '+refTxt()+'. A végén rögzítheted a kifulladást, és ha van okosórád, a pulzusadatokat. Az idők és a pulzus összevetése mutatja a fejlődést.</p>'+routeFields()+
+         '<p class="hint" id="rMsg"></p><button class="btn primary wide" data-act="refstart" data-sid="'+s.id+'" type="button">'+ic('i-flag')+'<span>Mérés indítása</span></button>'+
+         '<button class="btn wide" data-act="defer" data-sid="'+s.id+'" type="button">'+ic('i-rain')+'<span>Esőnap: a mérés holnapra csúszik</span></button>'+
+         '<p class="hint">A mérést mindig ugyanazon a kültéri körön végezd, ezért esőben inkább halaszd el. Ma helyette a következő edzés jön.</p></div>';
+    }else{
+      h+=store.block===1?blockDoneCard():'<div class="card empty">'+ic('i-check')+'<h2>A haladó blokk is kész</h2><p class="muted">Nézd meg a naplóban, mennyit változtak a mérések, és másold ki a havi összefoglalót. A haladó blokkot újra is kezdheted: a heti edzésnapokat vagy a mozgásformákat átállítva kicsit más lesz.</p></div>';
+    }
+    h+='<div class="card"><div class="eyebrow">Programon kívül</div><h3>Szabad edzés</h3><p class="muted">Stopperrel méri a nem tervezett mozgást, és beszámítja a heti percekbe.</p>'+
+       '<div class="btns">'+['bike','walk','ellip'].filter(hasSport).map(function(k){return '<button class="btn" data-act="free" data-sport="'+k+'" type="button">'+ic(SPORT[k].icon)+'<span>'+SPORT[k].short+'</span></button>';}).join('')+'</div></div>';
+    v.innerHTML=h;
+  }else if(run.mode==='run'){
+    s=run.session;
+    h+='<div class="card timer p-soft" id="timer"><div class="trow"><span class="pill" id="pill" aria-live="polite"></span><span class="muted small" id="phaseNo"></span></div>'+
+       dialHtml('hátra a szakaszból')+'<p class="cue" id="cue"></p>'+
+       '<div class="segs" id="segs" aria-hidden="true">'+segsHtml(s,false)+'</div>'+
+       '<div class="tmeta"><span>Hátra: <b id="totRem">'+mmss(run.total)+'</b></span>'+hrLine()+'<span id="nextUp"></span></div>'+
+       '<div class="ctrls"><button class="btn" id="pauseBtn" data-act="pause" type="button"></button>'+
+       '<button class="btn" data-act="skip" type="button">'+ic('i-skip')+'<span>Tovább</span></button>'+
+       '<button class="btn danger span2" data-act="stop" data-key="stop" data-label="Befejezés most" type="button">'+ic('i-stop')+'<span class="lbl">Befejezés most</span></button></div></div>'+
+       '<p class="muted small" style="text-align:center">'+s.week+'. hét · '+esc(s.title)+' · '+s.total/60+' perc</p>';
+    v.innerHTML=h;
+    run.fills=[].slice.call(v.querySelectorAll('#segs i'));run.idx=-1;
+    setPauseBtn();
+  }else if(run.mode==='watch'){
+    var isRef=run.kind==='ref',label=isRef?run.session.title:'Szabad edzés · '+SPORT[run.sport].name;
+    h+='<div class="card timer p-'+(isRef?'soft':run.sport)+'"><div class="trow"><span class="pill">'+ic(isRef?'i-flag':SPORT[run.sport].icon)+'<span>'+esc(label)+'</span></span></div>'+
+       dialHtml('eltelt idő')+'<p class="cue">'+(isRef?(run.sport==='walk'?'Gyalogold le ':'Tekerd le ')+refTxt(true)+'. A kör végén nyomd meg a gombot.':phCue('main',run.sport))+'</p>'+
+       '<div class="tmeta">'+hrLine()+'</div>'+
+       '<div class="ctrls"><button class="btn primary span2" data-act="watchdone" type="button">'+ic('i-check')+'<span>'+(isRef?'Kör vége':'Kész')+'</span></button>'+
+       '<button class="btn" id="pauseBtn" data-act="pause" type="button"></button>'+
+       '<button class="btn" data-act="cancel" data-key="cancel" data-label="Mégsem" type="button"><span class="lbl">Mégsem</span></button></div></div>';
+    v.innerHTML=h;setPauseBtn();
+  }else if(run.mode==='feedback'){
+    var fb=run.fb;
+    h+='<div class="card"><div class="eyebrow">'+(fb.kind==='ref'?'Mérés kész':(fb.full?'Edzés kész':'Edzés rögzítése'))+'</div><h2>'+esc(fb.title)+'</h2>';
+    h+=fb.kind==='plan'?'<p class="muted">'+fb.min+' perc'+(fb.full?'':' a '+fb.planned+' perces tervből. Részleges edzésként kerül a naplóba, a terv ezt nem pipálja ki.')+'</p>':'<div class="fbtime">'+mmss(fb.sec)+'</div>';
+    h+='</div><div class="card"><div class="fld"><span class="lbl-t">Mennyire volt megterhelő? (1-10)</span><div class="rpe" id="rpe">';
+    for(var i=1;i<=10;i++)h+='<button type="button" data-act="rpe" data-v="'+i+'">'+i+'</button>';
+    h+='</div><p class="hint">1 = alig érzed, 10 = a maximum. Ebben a programban a 3-5 közötti érték a cél.</p></div>'+
+       '<div class="fld"><span class="lbl-t">Beszélgetés edzés közben</span><div class="opts" id="breath">'+
+       '<button class="opt" type="button" data-act="breath" data-v="full">Végig tudtam beszélni</button>'+
+       '<button class="opt" type="button" data-act="breath" data-v="short">Rövid mondatokat tudtam mondani</button>'+
+       '<button class="opt" type="button" data-act="breath" data-v="none">Alig tudtam megszólalni</button></div><p class="hint" id="breathHint"></p></div>'+
+       '<div class="fld"><span class="lbl-t">Okosóra adatai, ha van</span><p class="hint">Az óra vagy a pulzusmérő edzés-összegzőjéből.</p></div>'+
+       '<div class="two"><div class="fld"><label for="hrAvg">Átlagpulzus</label><input id="hrAvg" type="number" inputmode="numeric" min="30" max="230" placeholder="ha van"></div>'+
+       '<div class="fld"><label for="hrMax">Maxpulzus</label><input id="hrMax" type="number" inputmode="numeric" min="30" max="230" placeholder="ha van"></div></div>'+
+       '<div class="fld"><label for="hrRec">Pulzusesés 1 perc alatt (ütés/perc)</label><input id="hrRec" type="number" inputmode="numeric" min="1" max="100" placeholder="pl. 22">'+
+       '<p class="hint">Az edzés végi és az 1 perccel későbbi pulzus különbsége. Minél nagyobb, annál edzettebb a szív.</p></div>'+
+       (fb.kind==='ref'&&!routeSet()?'<div class="fld"><span class="lbl-t">Merre mentél?</span><p class="hint">A következő méréseken ezt a kört ismételd meg. A távot az óra összegzőjéből is beírhatod. Ha most nem tudod, később a következő mérésnél is megadhatod.</p></div>'+
+         '<div class="two"><div class="fld"><label for="rName">Útvonal</label><input id="rName" type="text" maxlength="60" placeholder="pl. parti kör"></div>'+
+         '<div class="fld"><label for="rKm">Táv (km)</label><input id="rKm" type="number" inputmode="decimal" step="0.01" min="0.1" max="100" placeholder="pl. 5,2"></div></div>':'')+
+       (fb.kind==='ref'?'':'<div class="fld"><label for="kmIn">Távolság (km)</label><input id="kmIn" type="number" inputmode="decimal" step="0.01" min="0" max="300" placeholder="ha mérted"></div>')+
+       '<div class="fld"><label for="note">Megjegyzés</label><textarea id="note" maxlength="300" placeholder="Szél, útvonal, közérzet"></textarea></div>'+
+       '<button class="btn primary wide" data-act="savefb" type="button">'+ic('i-check')+'<span>Mentés a naplóba</span></button>'+
+       '<button class="btn wide" data-act="dropfb" data-key="dropfb" data-label="Elvetés mentés nélkül" type="button"><span class="lbl">Elvetés mentés nélkül</span></button></div>';
+    v.innerHTML=h;
+  }
+}
+var routeSport=store.route.sport||'bike';
+function routeFields(){
+  var r=store.route,locked=store.log.some(function(x){return x.kind==='ref';});
+  if(!hasSport('bike')&&routeSport==='bike')routeSport='walk';
+  var sw='<div class="opts two-up" id="rSport"><button class="opt'+(routeSport==='bike'?' on':'')+'" type="button" data-act="rsport" data-v="bike">'+ic('i-bike')+'Kerékpár</button>'+
+    '<button class="opt'+(routeSport==='walk'?' on':'')+'" type="button" data-act="rsport" data-v="walk">'+ic('i-walk')+'Gyaloglás</button></div>';
+  if(!routeSet())return sw+'<p class="hint">Az útvonalat és a távot most nem kell megadnod. A mérés végén beírhatod, merre mentél, és a következő méréseken ugyanezt a kört ismétled.</p>';
+  return '<div class="fld"><label for="rName">Útvonal</label><input id="rName" type="text" maxlength="60" placeholder="pl. parti kör" value="'+esc(r.name||'')+'"></div>'+
+    '<div class="fld"><label for="rKm">Táv (km)</label><input id="rKm" type="number" inputmode="decimal" step="0.01" min="0.1" max="100" value="'+(r.km||'')+'"></div>'+
+    '<div class="opts two-up" id="rSport"><button class="opt'+(routeSport==='bike'?' on':'')+'" type="button" data-act="rsport" data-v="bike">'+ic('i-bike')+'Kerékpár</button>'+
+    '<button class="opt'+(routeSport==='walk'?' on':'')+'" type="button" data-act="rsport" data-v="walk">'+ic('i-walk')+'Gyaloglás</button></div>'+
+    (locked?'<p class="hint">Már van mérésed ezen a körön. Ha megváltoztatod az útvonalat, az időket nem lehet majd összevetni.</p>':'<p class="hint">Válassz sík, forgalommentes kört, amit 6 hét múlva is ugyanígy meg tudsz tenni.</p>');
+}
+function dialHtml(sub){
+  return '<div class="dial"><svg viewBox="0 0 260 260" aria-hidden="true"><circle class="dtrack" cx="130" cy="130" r="118"/>'+
+    '<circle class="dprog" id="dprog" cx="130" cy="130" r="118" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 130 130)"/></svg>'+
+    '<div class="dcenter"><div class="big" id="big">00:00</div><div class="dsub">'+sub+'</div></div></div>';
+}
+function setDial(f){var d=$('dprog');if(d)d.style.strokeDashoffset=(100*(1-Math.min(1,Math.max(0,f)))).toFixed(2);}
+
+/* nyitókép: a 6 hét kanyargó útvonalként */
+function routeSvg(nx){
+  var N=ALL.length,per=8,rows=Math.ceil(N/per),x0=30,x1=310,dy=46,y0=36,W=340,H=y0+(rows-1)*dy+30;
+  var pts=ALL.map(function(s,i){var r=Math.floor(i/per),c=i%per,f=c/(per-1);return {x:r%2?x1-f*(x1-x0):x0+f*(x1-x0),y:y0+r*dy,r:r};});
+  function pathTo(k){
+    var d='M'+pts[0].x+' '+pts[0].y;
+    for(var i=1;i<=k&&i<N;i++){
+      var a=pts[i-1],b=pts[i];
+      if(b.r!==a.r)d+=' A'+(dy/2)+' '+(dy/2)+' 0 0 '+(a.r%2?0:1)+' '+b.x+' '+b.y;else d+=' L'+b.x.toFixed(1)+' '+b.y;
+    }
+    return d;
+  }
+  var nIdx=nx?ALL.indexOf(nx):N-1,s='<svg class="route" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+doneCount()+' állomás kész a '+N+'-ből">';
+  s+='<path class="rail" d="'+pathTo(N-1)+'"/>';
+  if(nIdx>0)s+='<path class="trav" d="'+pathTo(nIdx)+'"/>';
+  var seen={};
+  ALL.forEach(function(it,i){
+    var p=pts[i],done=isDone(it),sp=done?doneSport(it):it.sport,col=it.kind==='ref'?'var(--n-ref)':('var(--n-'+sp+')');
+    if(!seen[it.week]){seen[it.week]=1;s+='<text class="wl" x="'+p.x+'" y="'+(p.y-14)+'" text-anchor="'+(p.r%2?'end':'start')+'">'+(it.week-(store.block-1)*6)+'. HÉT</text>';}
+    if(it.kind==='ref')s+='<rect x="'+(p.x-5.5)+'" y="'+(p.y-5.5)+'" width="11" height="11" rx="2" transform="rotate(45 '+p.x+' '+p.y+')" fill="'+(done?col:'var(--night)')+'" stroke="'+col+'" stroke-width="2"/>';
+    else s+='<circle cx="'+p.x+'" cy="'+p.y+'" r="'+(done?5.5:4.5)+'" fill="'+(done?col:'var(--night)')+'" stroke="'+col+'" stroke-width="2"/>';
+    if(nx&&it.id===nx.id)s+='<circle class="nx" cx="'+p.x+'" cy="'+p.y+'" r="10"/>';
+  });
+  return s+'</svg>';
+}
+function blockDoneCard(){
+  return '<div class="card advice"><div class="eyebrow">Kész az alapozó</div><h2>Jöhet a haladó blokk</h2>'+
+    '<p>Hat hét kész. A következő hat hét hosszabb edzéseket és heti egy iramváltó edzést hoz, amelyben rövid, kicsit tempósabb szakaszok vannak. Ha az alapozó végén még sokszor elfogyott a levegőd, inkább ismételd meg az utolsó két hetet.</p>'+
+    '<button class="btn primary wide" data-act="setblock" data-v="2" type="button">'+ic('i-play')+'<span>Haladó blokk indítása</span></button></div>';
+}
+function blockPicker(){
+  return '<div class="opts two-up">'+[[1,'Alapozó','1-6. hét'],[2,'Haladó','7-12. hét']].map(function(o){return '<button class="opt'+(store.block===o[0]?' on':'')+'" type="button" data-act="setblock" data-v="'+o[0]+'" aria-pressed="'+(store.block===o[0])+'"><span>'+o[1]+' <span class="muted small">'+o[2]+'</span></span></button>';}).join('')+'</div>';
+}
+function daysPicker(){
+  var d=wdays();
+  return '<div class="opts seven" role="group" aria-label="Edzésnapok">'+WD.map(function(n,i){var on=d.indexOf(i)>=0;return '<button class="opt'+(on?' on':'')+'" type="button" data-act="wday" data-v="'+i+'" aria-pressed="'+on+'" aria-label="'+WDL[i]+'">'+n+'</button>';}).join('')+'</div><p class="hint" id="wdMsg"></p>';
+}
+function sportPicker(){
+  return '<div class="opts three-up" id="spPick">'+['bike','walk','ellip'].map(function(k){return '<button class="opt'+(hasSport(k)?' on':'')+'" type="button" data-act="sporttog" data-v="'+k+'" aria-pressed="'+hasSport(k)+'">'+ic(SPORT[k].icon)+SPORT[k].short+'</button>';}).join('')+'</div><p class="hint" id="spMsg"></p>';
+}
+function onboardHtml(){
+  return '<div class="card onboard"><div class="eyebrow">Kezdés</div><h2>Üdv az Alapozóban</h2>'+
+    '<p>Hat hét alatt, kényelmes tempójú, hétről hétre kicsit hosszabb edzésekkel építi az állóképességet. Nincs hajrá: a tempó végig beszélgetős, csak az idő nő. A végén fél órát bírsz egyhuzamban. Utána jöhet egy hathetes haladó blokk.</p>'+
+    '<div class="fld"><span class="lbl-t">Mit tudsz használni?</span>'+sportPicker()+'</div>'+
+    '<div class="fld"><span class="lbl-t">Mely napokon tudsz edzeni? (3-5 nap)</span>'+daysPicker()+'<p class="hint">A terv ehhez igazodik. Később a Terv fül alján, a Beállításokban módosíthatod.</p></div>'+
+    '<p class="hint">Ha krónikus betegséged van, rendszeresen gyógyszert szedsz, vagy régóta nem mozogtál, kezdés előtt beszélj az orvosoddal.</p>'+
+    '<button class="btn primary wide" data-act="onboard" type="button">'+ic('i-check')+'<span>Kezdjük</span></button>'+
+    '<p class="hint">Az adataid csak ezen a telefonon, ebben a böngészőben tárolódnak.</p></div>';
+}
+function setPauseBtn(){var b=$('pauseBtn');if(b)b.innerHTML=run.paused?ic('i-play')+'<span>Folytatás</span>':ic('i-pause')+'<span>Szünet</span>';}
+function setPhaseUI(idx){
+  var s=run.session,p=s.phases[idx],nx=s.phases[idx+1];
+  $('timer').className='card timer p-'+phClass(p.t,s.sport);
+  $('pill').innerHTML=ic(phIcon(p.t,s.sport))+'<span>'+phName(p.t,s.sport)+'</span>';
+  $('cue').textContent=phCue(p.t,s.sport);
+  $('phaseNo').textContent=(idx+1)+' / '+s.phases.length;
+  $('nextUp').textContent=nx?'Utána: '+phName(nx.t,s.sport)+', '+Math.round(nx.s/60)+' p':'Utolsó szakasz';
+}
+
+/* ================= időzítő ================= */
+function tick(){
+  if(run.mode==='run')tickRun();
+  else if(run.mode==='watch'){var sec=Math.floor(elapsedMs()/1000),b=$('big');if(b)b.textContent=mmss(sec);setDial((sec%60)/60);}
+}
+function tickRun(){
+  var e=elapsedMs()/1000;
+  if(e>=run.total){finishRun(true);return;}
+  var idx=0;while(e>=run.cum[idx])idx++;
+  if(idx!==run.idx){var first=run.idx<0;run.idx=idx;setPhaseUI(idx);if(!first||e<1){var ph=run.session.phases[idx];cue(ph.t);setTimeout(function(){say(phName(ph.t,run.session.sport)+', '+Math.round(ph.s/60)+' perc');},650);}run.lastSec=-1;}
+  var sl=Math.ceil(run.cum[idx]-e);
+  if(sl!==run.lastSec){run.lastSec=sl;if(sl>=1&&sl<=3)beep(700,.08);}
+  $('big').textContent=mmss(sl);
+  var ps=idx?run.cum[idx-1]:0;setDial((e-ps)/(run.cum[idx]-ps));
+  $('totRem').textContent=mmss(Math.ceil(run.total-e));
+  for(var i=0;i<run.fills.length;i++){
+    var s0=i?run.cum[i-1]:0,f=Math.min(1,Math.max(0,(e-s0)/(run.cum[i]-s0)));
+    run.fills[i].style.width=(f*100).toFixed(1)+'%';
+  }
+}
+function setupSession(s){
+  var c=0;run.session=s;run.sport=s.sport;run.cum=[];
+  s.phases.forEach(function(p){c+=p.s;run.cum.push(c);});run.total=c;
+}
+function go(){clearInterval(run.timer);run.timer=setInterval(tick,250);tick();}
+function startRun(){
+  var s=run.sel;if(run.mode!=='idle'||!s||s.kind!=='plan')return;
+  if(run.rain)s=swapAs(s,'ellip');
+  ensureAudio();say('Indul az edzés');lock();setupSession(s);
+  run.kind='plan';run.base=0;run.resumeAt=Date.now();run.paused=false;run.idx=-1;run.lastSec=-1;run.mode='run';
+  persist();renderRun();go();
+}
+function startWatch(kind,sport,s){
+  if(run.mode!=='idle'){setTab('run');return;}
+  ensureAudio();lock();
+  run.kind=kind;run.sport=sport;run.session=s||null;run.base=0;run.resumeAt=Date.now();run.paused=false;run.mode='watch';
+  persist();renderRun();setTab('run');go();
+}
+function togglePause(){
+  if(run.mode!=='run'&&run.mode!=='watch')return;
+  if(run.paused){run.resumeAt=Date.now();run.paused=false;}else{run.base=elapsedMs();run.paused=true;}
+  setPauseBtn();persist();
+}
+function skipPhase(){if(run.mode!=='run'||run.idx<0)return;run.base=run.cum[run.idx]*1000;run.resumeAt=Date.now();persist();tick();}
+function toFeedback(fb){clearInterval(run.timer);unlock();run.fb=fb;run.rpe=0;run.breath='';run.mode='feedback';persist();renderRun();setTab('run');}
+function finishRun(full){
+  var s=run.session,el=full?run.total:Math.min(run.total,elapsedMs()/1000);
+  if(full){fanfare();setTimeout(function(){say('Edzés kész. Szép munka.');},900);}
+  if(planDoneToday()&&!run.force){toFeedback({kind:'free',sport:s.sport,sid:null,week:null,title:'Extra edzés · '+s.title,min:Math.round(el/60),sec:Math.round(el),full:true});return;}
+  toFeedback({kind:'plan',sport:s.sport,rain:!!s.orig,sid:s.id,week:s.week,title:s.week+'. hét · '+s.title,min:Math.round(el/60),sec:Math.round(el),planned:Math.round(run.total/60),full:full});
+}
+function finishWatch(){
+  var sec=Math.round(elapsedMs()/1000);fanfare();
+  if(run.kind==='ref'){var s=run.session;toFeedback({kind:'ref',baseTitle:s.title,sport:run.sport,sid:s.id,week:s.week,title:s.title+(routeSet()?' · '+routeLabel():''),min:Math.round(sec/60),sec:sec,full:true,km:store.route.km||null});}
+  else toFeedback({kind:'free',sport:run.sport,sid:null,week:null,title:'Szabad edzés · '+SPORT[run.sport].name,min:Math.round(sec/60),sec:sec,full:true});
+}
+function resetRun(){clearInterval(run.timer);unlock();run.mode='idle';run.rain=false;run.force=false;run.fb=null;run.sel=nextItem();persist();renderRun();}
+function saveFeedback(){
+  var fb=run.fb;if(!fb)return;
+  if(fb.kind==='ref'&&$('rName')){
+    var rn=$('rName').value.trim().slice(0,60),rk=numIn('rKm',0.1,100,true);
+    if(rn||rk){store.route={name:rn,km:rk?Math.round(rk*100)/100:null,sport:fb.sport};fb.km=store.route.km;fb.title=fb.baseTitle+' · '+routeLabel();}
+  }
+  var e={id:Date.now(),date:new Date().toISOString(),kind:fb.kind,sport:fb.sport,rain:!!fb.rain,sid:fb.sid,week:fb.week,title:fb.title,min:fb.min,sec:fb.sec||null,
+    planned:fb.planned||null,full:!!fb.full,rpe:run.rpe||null,breath:run.breath||null,hrAvg:numIn('hrAvg',30,230),hrMax:numIn('hrMax',30,230),hrRec:numIn('hrRec',1,100),
+    km:fb.km||numIn('kmIn',0.01,300,true),note:($('note')?$('note').value:'').trim().slice(0,300)};
+  store.log.push(e);save();resetRun();logView='insights';renderAll();setTab('log');window.scrollTo(0,0);
+}
+function restore(){
+  var a=store.active;if(!a)return;
+  run.base=a.base||0;run.resumeAt=a.resumeAt||Date.now();run.paused=!!a.paused;
+  var e=elapsedMs()/1000;
+  if(a.mode==='run'){
+    var s=byId(a.sid);
+    if(!s||s.kind!=='plan'||e>s.total+3600){store.active=null;save();return;}
+    if(a.sport&&a.sport!==s.sport)s=swapAs(s,a.sport);
+    setupSession(s);run.kind='plan';run.mode='run';run.idx=-1;run.lastSec=-1;
+  }else if(a.mode==='watch'){
+    if(e>6*3600){store.active=null;save();return;}
+    run.kind=a.kind;run.sport=a.sport||'bike';run.session=a.sid?byId(a.sid):null;run.mode='watch';
+    if(run.kind==='ref'&&!run.session){store.active=null;save();run.mode='idle';return;}
+  }else return;
+  renderRun();setTab('run');lock();go();
+}
+
+/* ================= Napló ================= */
+var BREATH={full:'Végig beszélt',short:'Rövid mondatok',none:'Alig tudott beszélni'};
+function entryDur(x){return x.sec?mmss(x.sec):x.min+' perc';}
+function logText(){
+  var t=store.log.slice().reverse().map(function(x){
+    var p=[fmtDate(x.date),x.title,entryDur(x)+(x.kind==='plan'&&!x.full?' (részleges)':'')];
+    if(x.km)p.push(km(x.km));if(x.rpe)p.push('RPE '+x.rpe);if(x.breath)p.push(BREATH[x.breath]);
+    if(x.hrAvg)p.push('átlagpulzus '+x.hrAvg);if(x.hrMax)p.push('maxpulzus '+x.hrMax);if(x.hrRec)p.push('pulzusesés 1 perc alatt '+x.hrRec);if(x.note)p.push(x.note);
+    return p.join(' | ');
+  }).join('\n');
+  var mt=store.metrics.slice().reverse().map(function(m){
+    var p=[dayKey(m.date),'heti mérőszámok'];
+    if(m.wt)p.push('testsúly '+dec(m.wt)+' kg');if(m.rhr)p.push('nyugalmi pulzus '+m.rhr);if(m.vo2)p.push('VO2max '+String(m.vo2).replace('.',','));if(m.walkHr)p.push('séta-pulzus '+m.walkHr);
+    return p.join(' | ');
+  }).join('\n');
+  return t+(mt?'\n\n'+mt:'');
+}
+var manualSport='bike',manualLink='plan',manualBreath='';
+function nextPlanItem(){return nextItem();}
+function planTitle(np,sp){if(np.kind==='ref')return np.title+(routeSet()?' · '+routeLabel():'')+' (utólag)';return np.week+'. hét · '+np.title+' (utólag'+(sp!==np.sport?', '+SPORT[sp].short.toLowerCase():'')+')';}
+function linkLabel(np){return np.kind==='ref'?np.title+' (mérőkör'+(routeSet()?': '+esc(routeLabel()):'')+')':np.week+'. hét, '+esc(np.title.toLowerCase())+', '+np.total/60+' perc';}
+function manualForm(){
+  var np=nextPlanItem();
+  return '<div class="card" id="manual"><h3>Utólagos rögzítés</h3><p class="muted small">Ha az app nélkül edzettél, itt beírhatod.</p>'+
+    (np?'<div class="fld"><span class="lbl-t">Mi volt ez?</span><div class="opts" id="mLink">'+
+      '<button class="opt'+(manualLink==='plan'?' on':'')+'" type="button" data-act="mlink" data-v="plan">'+ic('i-check')+'<span>A következő a tervben: '+linkLabel(np)+'</span></button>'+
+      '<button class="opt'+(manualLink==='extra'?' on':'')+'" type="button" data-act="mlink" data-v="extra">'+ic('i-plus')+'<span>Extra edzés, a terven kívül</span></button></div>'+
+      '<p class="hint">A tervbeli edzés kipipálódik, akkor is, ha más mozgásformával csináltad.</p></div>':'')+
+    '<div class="opts three-up" id="mSport">'+['bike','walk','ellip'].map(function(k){return '<button class="opt'+(manualSport===k?' on':'')+'" type="button" data-act="msport" data-v="'+k+'">'+ic(SPORT[k].icon)+SPORT[k].short+'</button>';}).join('')+'</div>'+
+    '<div class="fld"><label for="mDate">Nap</label><input id="mDate" type="date" value="'+dayKey(Date.now())+'"></div>'+
+    '<div class="two"><div class="fld"><label for="mMin">Perc</label><input id="mMin" type="number" inputmode="numeric" min="0" max="600" placeholder="pl. 15"></div>'+
+    '<div class="fld"><label for="mSec">Másodperc</label><input id="mSec" type="number" inputmode="numeric" min="0" max="59" placeholder="0"></div></div>'+
+    '<div class="fld"><label for="mKm">Távolság (km)</label><input id="mKm" type="number" inputmode="decimal" step="0.01" min="0" max="300" placeholder="ha mérted"></div>'+
+    '<div class="two"><div class="fld"><label for="mHrAvg">Átlagpulzus</label><input id="mHrAvg" type="number" inputmode="numeric" min="30" max="230" placeholder="ha van"></div>'+
+    '<div class="fld"><label for="mHrMax">Maxpulzus</label><input id="mHrMax" type="number" inputmode="numeric" min="30" max="230" placeholder="ha van"></div></div>'+
+    '<div class="fld"><label for="mHrRec">Pulzusesés 1 perc alatt</label><input id="mHrRec" type="number" inputmode="numeric" min="1" max="100" placeholder="ha van"></div>'+
+    '<div class="fld"><span class="lbl-t">Beszélgetés közben</span><div class="opts" id="mBreath">'+
+      [['full','Végig tudtam beszélni'],['short','Rövid mondatokat tudtam mondani'],['none','Alig tudtam megszólalni']].map(function(o){return '<button class="opt'+(manualBreath===o[0]?' on':'')+'" type="button" data-act="mbreath" data-v="'+o[0]+'">'+o[1]+'</button>';}).join('')+'</div></div>'+
+    '<label class="check"><input id="mRef" type="checkbox"> Ez a referenciakör volt'+(routeSet()?' ('+esc(routeLabel())+')':'')+'</label>'+
+    '<div class="fld"><label for="mNote">Megjegyzés</label><textarea id="mNote" maxlength="300"></textarea></div>'+
+    '<p class="hint" id="mMsg"></p><button class="btn primary" data-act="msave" type="button">'+ic('i-plus')+'<span>Hozzáadás a naplóhoz</span></button></div>';
+}
+/* ---------- Napló: Elemzés / Bejegyzések / Rögzítés ---------- */
+var logView='insights',addView='workout';
+var DAY=864e5;
+function wkStart(t){var d=new Date(t);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getTime();}
+function addDays(t,n){var d=new Date(t);d.setDate(d.getDate()+n);return d.getTime();}
+function weekBuckets(n){
+  var s0=wkStart(Date.now()),out=[];
+  for(var i=n-1;i>=0;i--){
+    var st=addDays(s0,-7*i),en=addDays(st,7);
+    var E=store.log.filter(function(x){var t=new Date(x.date).getTime();return x.kind!=='str'&&t>=st&&t<en;});
+    out.push({start:st,end:en,min:E.reduce(function(a,x){return a+(x.min||0);},0),count:E.length});
+  }
+  return out;
+}
+function fmtWeek(st){var a=new Date(st),b=new Date(addDays(st,6));
+  var o={month:'short',day:'numeric'};try{return a.toLocaleDateString('hu-HU',o)+' – '+b.toLocaleDateString('hu-HU',o);}catch(e){return dayKey(st);}}
+function avgOf(a){return a.length?a.reduce(function(s,v){return s+v;},0)/a.length:0;}
+function trendOf(pts){ /* heti meredekség lineáris regresszióval */
+  var p=pts.slice().sort(function(a,b){return a.d<b.d?-1:1;});
+  if(p.length<2)return null;
+  var t0=new Date(p[0].d).getTime(),xs=p.map(function(o){return (new Date(o.d).getTime()-t0)/(7*DAY);}),ys=p.map(function(o){return o.v;});
+  var mx=avgOf(xs),my=avgOf(ys),num=0,den=0;
+  for(var i=0;i<xs.length;i++){num+=(xs[i]-mx)*(ys[i]-my);den+=(xs[i]-mx)*(xs[i]-mx);}
+  return {s:den?num/den:0,first:ys[0],last:ys[ys.length-1],n:p.length,weeks:xs[xs.length-1]};
+}
+var nf1=function(v){return dec((Math.round(v*10)/10).toFixed(1));};
+function analyze(){
+  var L=store.log,M=store.metrics,now=Date.now(),I=[];
+  function add(tone,title,text,dir){I.push({tone:tone,title:title,text:text,dir:dir||(tone==='good'?'up':tone==='warn'?'alert':'flat')});}
+  var wk=weekBuckets(8),cur=wk[7],prev=wk[6];
+  var firstT=L.length?Math.min.apply(null,L.map(function(x){return new Date(x.date).getTime();})):now;
+  var fullW=wk.slice(0,7).filter(function(w){return w.end>firstT;});
+  if(L.length){
+    var t='Ezen a héten eddig '+Math.round(cur.min)+' perc'+(fullW.length?', múlt héten '+Math.round(prev.min)+' perc':'')+'. A cél heti 150 perc.';
+    if(fullW.length&&prev.min>=150)add('good','Heti mozgás',t+' Múlt héten megvolt a cél.');
+    else if(fullW.length>=2&&prev.min>wk[5].min)add('good','Heti mozgás',t+' Nő a heti mozgásidő.');
+    else add('neutral','Heti mozgás',t);
+    var days={};L.forEach(function(x){if(now-new Date(x.date).getTime()<14*DAY)days[dayKey(x.date)]=1;});
+    var nd=Object.keys(days).length;
+    if(nd>=6)add('good','Rendszeresség','Az elmúlt 14 napból '+nd+' napon mozogtál. Ez az állóképesség legfontosabb hajtóereje.');
+    else if(now-firstT>7*DAY&&nd<=2)add('warn','Rendszeresség','Az elmúlt 14 napból csak '+nd+' napon mozogtál. Rövidebb, de gyakoribb edzés többet ér.');
+    else add('neutral','Rendszeresség','Az elmúlt 14 napból '+nd+' napon mozogtál. Heti 4-5 alkalom a cél.');
+  }
+  var B=L.filter(function(x){return x.breath;}),Rb=B.filter(function(x){return now-new Date(x.date).getTime()<14*DAY;}),Ob=B.filter(function(x){return now-new Date(x.date).getTime()>=14*DAY;});
+  var none7=B.filter(function(x){return x.breath==='none'&&now-new Date(x.date).getTime()<7*DAY;}).length;
+  if(none7>=2)add('warn','Beszélgetős teszt','Az elmúlt héten '+none7+' edzésen alig tudtál beszélni. Lassíts, vagy tarts hosszabb pihenőt a szakaszok között.');
+  else if(Rb.length>=3){
+    var pf=function(a){return Math.round(a.filter(function(x){return x.breath==='full';}).length/a.length*100);};
+    var p=pf(Rb),q=Ob.length>=3?pf(Ob):null;
+    var t2='Az utóbbi két hétben az edzések '+p+'%-ában végig tudtál beszélni'+(q!==null?' (korábban '+q+'%)':'')+'.';
+    if(q!==null&&p>=q+10)add('good','Beszélgetős teszt',t2+' Egyre könnyebben megy ugyanaz a terhelés.');
+    else if(p>=70)add('good','Beszélgetős teszt',t2+' Jó tempót tartasz.');
+    else add('neutral','Beszélgetős teszt',t2+' A cél, hogy a legtöbb edzésen végig tudj beszélni.');
+  }
+  var P=L.filter(function(x){return x.kind==='plan'&&x.rpe;});
+  if(P.length>=4){
+    var h2=Math.min(4,Math.floor(P.length/2)),A=P.slice(-h2),Bq=P.slice(-2*h2,-h2);
+    var rA=avgOf(A.map(function(x){return x.rpe;})),rB=avgOf(Bq.map(function(x){return x.rpe;})),mA=avgOf(A.map(function(x){return x.min;})),mB=avgOf(Bq.map(function(x){return x.min;}));
+    var t3='Az utolsó '+h2+' edzés átlaga '+Math.round(mA)+' perc, '+nf1(rA)+' megterheléssel (előtte '+Math.round(mB)+' perc, '+nf1(rB)+').';
+    if(rA>=7)add('warn','Megterhelés',t3+' Ez soknak tűnik: ebben a programban a 3-5 a cél.');
+    else if(mA>mB&&rA<=rB+0.3)add('good','Megterhelés',t3+' Hosszabb edzések, nem nagyobb megterheléssel: ez a fejlődés jele.');
+    else add('neutral','Megterhelés',t3);
+  }
+  var pick=function(arr,f){return arr.filter(function(x){return x[f];}).map(function(x){return {d:x.date,v:x[f]};});};
+  var tr=trendOf(pick(M,'rhr'));
+  if(tr&&tr.n>=3){
+    var t4=tr.first+' → '+tr.last+' ütés/perc, hetente átlag '+(tr.s>0?'+':'')+nf1(tr.s)+'.';
+    if(tr.s<=-0.3)add('good','Nyugalmi pulzus',t4+' A csökkenő nyugalmi pulzus az edzettség javulását jelzi.','down');
+    else if(tr.s>=0.5)add('warn','Nyugalmi pulzus',t4+' Emelkedik. Kevés alvás, stressz vagy betegség is okozhatja; ha tartós, kérdezd meg az orvosod.','up');
+    else add('neutral','Nyugalmi pulzus',t4+' Egyelőre stabil.');
+  }
+  var tv=trendOf(pick(M,'vo2'));
+  if(tv){if(tv.last>tv.first)add('good','VO2max',nf1(tv.first)+' → '+nf1(tv.last)+' ml/kg/perc. Javul a szív-tüdő teljesítőképesség.');
+    else add('neutral','VO2max',nf1(tv.first)+' → '+nf1(tv.last)+' ml/kg/perc. Az óra becslése lassan, hetek alatt mozdul.');}
+  var tw=trendOf(pick(M,'wt'));
+  if(tw)add('neutral','Testsúly',nf1(tw.first)+' → '+nf1(tw.last)+' kg'+(tw.weeks>=1?', hetente átlag '+(tw.s>0?'+':'')+nf1(tw.s)+' kg':'')+'.',tw.s>0.05?'up':tw.s<-0.05?'down':'flat');
+  var refs=L.filter(function(x){return x.kind==='ref'&&x.sec;});
+  if(refs.length>=2){
+    var a=refs[0],z=refs[refs.length-1],dt=z.sec-a.sec,dh=(a.hrAvg&&z.hrAvg)?z.hrAvg-a.hrAvg:null;
+    var t5='Az idő '+mmss(a.sec)+' → '+mmss(z.sec)+(dh!==null?', az átlagpulzus '+a.hrAvg+' → '+z.hrAvg:'')+'.';
+    if(dt<0||(dh!==null&&dh<0))add('good','Referenciakör',t5+' Ugyanazt a kört '+(dt<0?'gyorsabban':'')+(dt<0&&dh!==null&&dh<0?' és ':'')+(dh!==null&&dh<0?'alacsonyabb pulzussal':'')+' teszed meg.');
+    else add('neutral','Referenciakör',t5+' Figyelj, hogy mindig hasonló tempóban és körülmények között mérj.');
+  }
+  var rec=L.filter(function(x){return x.hrRec;}).map(function(x){return x.hrRec;});
+  if(rec.length>=4){var hh=Math.floor(rec.length/2),r1=avgOf(rec.slice(0,hh)),r2=avgOf(rec.slice(-hh));
+    if(r2>r1+1)add('good','Pulzusesés edzés után','Átlag '+Math.round(r1)+' → '+Math.round(r2)+' ütés/perc 1 perc alatt. A szív gyorsabban áll vissza.');
+    else add('neutral','Pulzusesés edzés után','Átlag '+Math.round(r1)+' → '+Math.round(r2)+' ütés/perc 1 perc alatt.');}
+  if(store.hrCap){var over=L.filter(function(x){return x.hrMax&&x.hrMax>store.hrCap&&now-new Date(x.date).getTime()<14*DAY;}).length;
+    if(over)add('warn','Pulzushatár','Az elmúlt 14 napban '+over+' edzésen a maxpulzus a beállított '+store.hrCap+' fölé ment. Lassíts, amikor közelítesz hozzá.');}
+  var st14=L.filter(function(x){return x.kind==='str'&&now-new Date(x.date).getTime()<14*DAY;}).length;
+  if(st14>=3)add('good','Erősítés','Az elmúlt két hétben '+st14+' alkalom. Ez megfelel a heti 2× ajánlásnak.');
+  else if(L.length>=3)add('neutral','Erősítés','Az elmúlt két hétben '+st14+' alkalom. A heti 150 perc mellé heti 2× rövid erősítés ajánlott, a Terv fülön találod.');
+  return {items:I,weeks:wk};
+}
+function weekChart(wk){
+  var W=320,H=150,L=8,R=8,T=18,B=24,pw=W-L-R,ph=H-T-B,n=wk.length,gap=8,bw=(pw-gap*(n-1))/n;
+  var mx=Math.max(180,Math.max.apply(null,wk.map(function(w){return w.min;}))*1.1),y=function(v){return T+ph-(v/mx)*ph;};
+  var s='<svg class="ch wkc" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Heti mozgásidő az elmúlt '+n+' hétben">';
+  s+='<line class="tgt" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(150).toFixed(1)+'" y2="'+y(150).toFixed(1)+'"/><text class="ax" x="'+(W-R)+'" y="'+(y(150)-4).toFixed(1)+'" text-anchor="end">cél 150</text>';
+  wk.forEach(function(w,i){
+    var x=L+i*(bw+gap),yy=y(w.min),hgt=Math.max(0,T+ph-yy),cur=i===n-1,d=new Date(w.start);
+    if(w.min>0)s+='<rect class="bar'+(cur?' cur':'')+(w.min>=150?' ok':'')+'" x="'+x.toFixed(1)+'" y="'+yy.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+hgt.toFixed(1)+'" rx="4"/>';
+    else s+='<rect class="bar0" x="'+x.toFixed(1)+'" y="'+(T+ph-2)+'" width="'+bw.toFixed(1)+'" height="2" rx="1"/>';
+    if(w.min>0)s+='<text class="bv" x="'+(x+bw/2).toFixed(1)+'" y="'+(yy-4).toFixed(1)+'" text-anchor="middle">'+Math.round(w.min)+'</text>';
+    s+='<text class="ax" x="'+(x+bw/2).toFixed(1)+'" y="'+(H-7)+'" text-anchor="middle">'+(cur?'e hét':(d.getMonth()+1)+'.'+d.getDate()+'.')+'</text>';
+  });
+  return s+'</svg>';
+}
+var DIRI={up:'i-up',down:'i-down',flat:'i-flat',alert:'i-alert'};
+function insightsView(){
+  var A=analyze(),I=A.items,g=I.filter(function(x){return x.tone==='good';}).length,w=I.filter(function(x){return x.tone==='warn';}).length;
+  var enough=store.log.length>=3||store.metrics.length>=2,head,sub;
+  if(!enough){head='Még kevés az adat';sub='Néhány edzés és két heti mérés után itt összefoglalom, merre haladsz: mi javul, mire figyelj.';}
+  else if(w&&w>=g){head='Vegyes a kép';sub=g+' kedvező jel, '+w+' figyelmeztető. Nézd meg alább, mire figyelj.';}
+  else if(g>=2){head='Jó irányba haladsz';sub=g+' kedvező jel'+(w?', '+w+' figyelmeztető':'')+'. Így tovább, ugyanebben a kényelmes tempóban.';}
+  else{head='Alakul';sub='A trendekhez pár hét adat kell. Tartsd a rendszerességet, és írd be hetente a mérőszámokat.';}
+  var R=store.log.filter(function(x){return x.kind==='plan'&&x.rpe;});
+  var h='<div class="card verdict"><div class="eyebrow">Trendelemzés</div><h2>'+head+'</h2><p class="muted">'+sub+'</p>'+
+    '<div class="sum"><div><b>'+doneCount()+'/'+ALL.length+'</b><span>kész a tervből</span></div><div><b>'+fmtMin(store.log.filter(function(x){return x.kind!=='str';}).reduce(function(a,x){return a+(x.min||0);},0))+'</b><span>összes mozgás</span></div>'+
+    '<div><b>'+(R.length?nf1(avgOf(R.map(function(x){return x.rpe;}))):'-')+'</b><span>átlag megterhelés</span></div></div></div>';
+  if(I.length){
+    h+='<div class="card"><div class="ins-list">';
+    I.forEach(function(x){h+='<div class="ins t-'+x.tone+'"><span class="ins-ic">'+ic(DIRI[x.dir])+'</span><div><b>'+x.title+'</b><p>'+x.text+'</p></div></div>';});
+    h+='</div></div>';
+  }
+  h+='<div class="card"><div class="row"><div><div class="eyebrow">Heti mozgásidő</div><h3>Az elmúlt 8 hét</h3></div></div>'+weekChart(A.weeks)+'<p class="hint">Percben. A halványabb oszlop az aktuális, még tartó hét.</p></div>';
+  h+=trendsCard();
+  h+=summaryCard();
+  return h;
+}
+/* havi összefoglaló: másolható szöveg orvosnak, edzőnek */
+var sumPeriod='30';
+function periodRange(p){
+  var now=new Date(),s,e=now.getTime()+1;
+  if(p==='month'){s=new Date(now.getFullYear(),now.getMonth(),1).getTime();}
+  else if(p==='prev'){s=new Date(now.getFullYear(),now.getMonth()-1,1).getTime();e=new Date(now.getFullYear(),now.getMonth(),1).getTime();}
+  else s=now.getTime()-30*DAY;
+  return {s:s,e:e};
+}
+function fmtLong(t){try{return new Date(t).toLocaleDateString('hu-HU',{year:'numeric',month:'short',day:'numeric'});}catch(e){return dayKey(t);}}
+function summaryText(p){
+  var r=periodRange(p),inR=function(x){var t=new Date(x.date).getTime();return t>=r.s&&t<r.e;};
+  var LA=store.log.filter(inR),L=LA.filter(function(x){return x.kind!=='str';}),STR=LA.filter(function(x){return x.kind==='str';}),M=store.metrics.filter(inR),out=[];
+  out.push('Állóképesség program – összefoglaló');
+  out.push('Időszak: '+fmtLong(r.s)+' – '+fmtLong(r.e-1));
+  if(!LA.length&&!M.length){out.push('Ebben az időszakban nincs rögzített adat.');return out.join('\n');}
+  var tot=L.reduce(function(a,x){return a+(x.min||0);},0),wks=Math.max(1,(Math.min(r.e,Date.now())-r.s)/(7*DAY));
+  out.push('Edzések: '+L.length+' alkalom, összesen '+fmtMin(tot)+' (heti átlag '+Math.round(tot/wks)+' perc; ajánlott: heti 150 perc)');
+  var by={};L.forEach(function(x){var k=x.sport||'bike';by[k]=by[k]||{n:0,m:0};by[k].n++;by[k].m+=x.min||0;});
+  out.push('Mozgásformák: '+Object.keys(by).map(function(k){return SPORT[k].short.toLowerCase()+' '+by[k].n+' alkalom ('+Math.round(by[k].m)+' perc)';}).join(', '));
+  if(STR.length)out.push('Kiegészítő erősítés: '+STR.length+' alkalom');
+  var nx=nextItem();out.push('Program: '+(store.block===2?'haladó blokk':'alapozó')+', '+doneCount()+'/'+ALL.length+' teljesítve'+(nx?' (most: '+nx.week+'. hét)':' (kész)'));
+  var R=L.filter(function(x){return x.rpe;});
+  if(R.length)out.push('Érzett megterhelés (1-10): átlag '+nf1(avgOf(R.map(function(x){return x.rpe;}))));
+  var B=L.filter(function(x){return x.breath;});
+  if(B.length){var c=function(v){return B.filter(function(x){return x.breath===v;}).length;};out.push('Beszélgetős teszt: végig tudott beszélni '+c('full')+', rövid mondatok '+c('short')+', alig tudott beszélni '+c('none'));}
+  var HA=L.filter(function(x){return x.hrAvg;}).map(function(x){return x.hrAvg;}),HM=L.filter(function(x){return x.hrMax;}).map(function(x){return x.hrMax;});
+  if(HA.length)out.push('Edzés-átlagpulzus: '+Math.min.apply(null,HA)+'–'+Math.max.apply(null,HA)+' ütés/perc'+(HM.length?', legmagasabb maxpulzus: '+Math.max.apply(null,HM):''));
+  else if(HM.length)out.push('Legmagasabb maxpulzus: '+Math.max.apply(null,HM)+' ütés/perc');
+  if(store.hrCap){var ov=L.filter(function(x){return x.hrMax&&x.hrMax>store.hrCap;}).length;out.push('Beállított pulzushatár: '+store.hrCap+', átlépve: '+ov+' edzésen');}
+  var RC=L.filter(function(x){return x.hrRec;}).map(function(x){return x.hrRec;});
+  if(RC.length)out.push('Pulzusesés 1 perc alatt edzés után: átlag '+Math.round(avgOf(RC))+' ütés/perc');
+  var ft=function(f,u,d){var a=M.filter(function(m){return m[f];});if(!a.length)return null;var x=a[0][f],y=a[a.length-1][f],fm=function(v){return d?nf1(v):String(v);};return a.length>1?fm(x)+' → '+fm(y)+' '+u:fm(y)+' '+u;};
+  var w=ft('wt','kg',1),rh=ft('rhr','ütés/perc'),vo=ft('vo2','ml/kg/perc',1),wh=ft('walkHr','ütés/perc');
+  if(w)out.push('Testsúly: '+w);if(rh)out.push('Nyugalmi pulzus: '+rh);if(vo)out.push('VO2max: '+vo);if(wh)out.push('Séta-pulzus: '+wh);
+  var refs=L.filter(function(x){return x.kind==='ref'&&x.sec;});
+  if(refs.length)out.push('Referenciakör'+(routeSet()?' ('+routeLabel()+')':'')+': '+refs.map(function(x){return fmtDay(x.date)+' '+mmss(x.sec)+(x.hrAvg?' (átlagpulzus '+x.hrAvg+')':'');}).join(', '));
+  var notes=L.filter(function(x){return x.note;});
+  if(notes.length){out.push('Megjegyzések:');notes.forEach(function(x){out.push('- '+fmtDay(x.date)+': '+x.note);});}
+  return out.join('\n');
+}
+function summaryCard(){
+  var P=[['30','Elmúlt 30 nap'],['month','Ez a hónap'],['prev','Előző hónap']];
+  return '<div class="card" id="summary"><div class="eyebrow">Megosztható</div><h3>Havi összefoglaló</h3>'+
+    '<p class="muted small">Rövid, szöveges összefoglaló orvosnak, edzőnek, vagy a saját jegyzeteidbe.</p>'+
+    '<div class="opts three-up">'+P.map(function(o){return '<button class="opt'+(sumPeriod===o[0]?' on':'')+'" type="button" data-act="sumper" data-v="'+o[0]+'">'+o[1]+'</button>';}).join('')+'</div>'+
+    '<pre class="sumpre">'+esc(summaryText(sumPeriod))+'</pre>'+
+    '<button class="btn primary" data-act="copysum" type="button">'+ic('i-copy')+'<span>Összefoglaló másolása</span></button>'+
+    '<p class="hint" id="sumMsg"></p><textarea id="sumText" hidden readonly aria-label="Összefoglaló szövege"></textarea></div>';
+}
+function entryRow(x){
+  var icn=x.kind==='ref'?'i-flag':SPORT[x.sport||'bike'].icon,cls=x.kind==='ref'?'ref':(x.sport||'bike'),warn=store.hrCap&&x.hrMax&&x.hrMax>store.hrCap;
+  var meta=[fmtDate(x.date),entryDur(x)+(x.kind==='plan'&&!x.full?' · részleges':'')];if(x.km)meta.push(km(x.km));
+  var chips=(x.rpe?'<span class="chip">Megterhelés '+x.rpe+'</span>':'')+(x.breath?'<span class="chip'+(x.breath==='none'?' warn':'')+'">'+esc(BREATH[x.breath])+'</span>':'')+
+    (x.hrAvg?'<span class="chip">átlagpulzus '+x.hrAvg+'</span>':'')+(x.hrMax?'<span class="chip'+(warn?' warn':'')+'">max '+x.hrMax+(warn?' · határ felett':'')+'</span>':'')+
+    (x.hrRec?'<span class="chip">esés 1 perc: '+x.hrRec+'</span>':'')+(x.rain?'<span class="chip">esőnap</span>':'')+(x.kind==='free'||x.kind==='manual'?'<span class="chip">terven kívül</span>':'');
+  return '<details class="lrow"><summary><span class="mico p-'+cls+'">'+ic(icn)+'</span><span class="lt"><b>'+esc(x.title)+'</b><span>'+esc(meta.join(' · '))+'</span></span>'+
+    (warn||x.breath==='none'?'<span class="dotw" title="Figyelj rá"></span>':'')+ic('i-chev')+'</summary><div class="lbody">'+
+    (chips?'<div class="chips">'+chips+'</div>':'<p class="hint">Nincs további adat.</p>')+(x.note?'<p class="muted" style="font-size:15px">'+esc(x.note)+'</p>':'')+
+    '<div class="btns">'+(x.kind==='manual'&&!x.sid&&nextPlanItem()?'<button class="btn sm" data-act="attach" data-id="'+x.id+'" type="button">'+ic('i-check')+'<span>Beszámítás a tervbe</span></button>':'')+
+    '<button class="btn sm danger" data-act="del" data-id="'+x.id+'" data-key="del'+x.id+'" data-label="Törlés" type="button">'+ic('i-trash')+'<span class="lbl">Törlés</span></button></div></div></details>';
+}
+function metricRow(m){
+  var v=[m.wt?nf1(m.wt)+' kg':'',m.rhr?'nyugalmi '+m.rhr:'',m.walkHr?'séta '+m.walkHr:'',m.vo2?'VO2max '+nf1(m.vo2):''].filter(Boolean).join(' · ');
+  return '<details class="lrow"><summary><span class="mico p-heart">'+ic('i-heart')+'</span><span class="lt"><b>Heti mérőszámok</b><span>'+esc(fmtDay(m.date)+' · '+v)+'</span></span>'+ic('i-chev')+'</summary>'+
+    '<div class="lbody"><div class="btns"><button class="btn sm danger" data-act="metdel" data-id="'+m.id+'" data-key="m'+m.id+'" data-label="Törlés" type="button">'+ic('i-trash')+'<span class="lbl">Törlés</span></button></div></div></details>';
+}
+function listView(){
+  var all=store.log.map(function(x){return {t:new Date(x.date).getTime(),h:entryRow(x),min:x.kind==='str'?0:(x.min||0),w:1};})
+    .concat(store.metrics.map(function(m){return {t:new Date(m.date).getTime(),h:metricRow(m),min:0,w:0};}));
+  if(!all.length)return '<div class="card empty">'+ic('i-log')+'<h2>Még nincs bejegyzés</h2><p class="muted">Az edzések és a heti mérőszámok itt jelennek meg, hetekre bontva. Edzés után az app magától ide menti, utólag a Rögzítés fülön írhatsz be.</p>'+
+    '<button class="btn primary" data-act="logview" data-v="add" type="button">'+ic('i-plus')+'<span>Rögzítés</span></button></div>';
+  all.sort(function(a,b){return b.t-a.t;});
+  var groups=[],gi={};
+  all.forEach(function(e){var k=wkStart(e.t);if(!(k in gi)){gi[k]=groups.length;groups.push({k:k,items:[],min:0,n:0});}var g=groups[gi[k]];g.items.push(e.h);g.min+=e.min;g.n+=e.w;});
+  var h='';
+  groups.forEach(function(g){
+    h+='<div class="card wgrp"><div class="ghead"><b>'+esc(fmtWeek(g.k))+'</b><span>'+g.n+' edzés · '+Math.round(g.min)+' perc</span></div>'+g.items.join('')+'</div>';
+  });
+  h+='<div class="card"><button class="btn wide" data-act="copylog" type="button">'+ic('i-copy')+'<span>Napló másolása szövegként</span></button>'+
+     '<p class="hint" id="copyMsg">Orvosnak, edzőnek elküldhető, vagy a Jegyzetekbe menthető.</p><textarea id="logText" hidden readonly aria-label="Napló szövege"></textarea></div>';
+  return h;
+}
+function addViewHtml(){
+  return '<div class="opts two-up" role="group" aria-label="Mit rögzítesz?">'+
+    '<button class="opt'+(addView==='workout'?' on':'')+'" type="button" data-act="addview" data-v="workout">'+ic('i-timer')+'Edzés utólag</button>'+
+    '<button class="opt'+(addView==='metrics'?' on':'')+'" type="button" data-act="addview" data-v="metrics">'+ic('i-heart')+'Heti mérőszámok</button></div>'+
+    (addView==='workout'?manualForm():metricsCard());
+}
+function renderLog(){
+  var tabs=[['insights','Elemzés'],['list','Bejegyzések'],['add','Rögzítés']];
+  var h='<h1 class="ltitle">Napló</h1><div class="subtabs" role="tablist" aria-label="Napló">'+tabs.map(function(t){return '<button type="button" role="tab" aria-selected="'+(logView===t[0])+'" class="'+(logView===t[0]?'on':'')+'" data-act="logview" data-v="'+t[0]+'">'+t[1]+'</button>';}).join('')+'</div>';
+  h+=logView==='insights'?insightsView():logView==='list'?listView():addViewHtml();
+  $('view-log').innerHTML=h;
+}
+/* ---------- óra mérőszámai és trendek ---------- */
+var dec=function(v){return String(v).replace('.',',');};
+function fmtDay(iso){try{return new Date(iso).toLocaleDateString('hu-HU',{month:'short',day:'numeric'});}catch(e){return dayKey(iso);}}
+function metricsCard(){
+  var h='<div class="card" id="metrics"><div class="eyebrow">Hetente egyszer</div><h3>Heti mérőszámok</h3>'+
+    '<p class="muted small">Elég hetente egyszer, mindig ugyanazon a napon. A testsúlyt reggel, mosdó után, reggeli előtt mérd, így összevethetők a hetek. A pulzus- és VO2max-értéket az okosórád appjában találod, ha van. Bármelyik mező üresen maradhat.</p>'+
+    '<div class="two"><div class="fld"><label for="gDate">Nap</label><input id="gDate" type="date" value="'+dayKey(Date.now())+'"></div>'+
+    '<div class="fld"><label for="gWt">Testsúly (kg)</label><input id="gWt" type="number" inputmode="decimal" step="0.1" min="30" max="250" placeholder="pl. 82,4"></div></div>'+
+    '<div class="two"><div class="fld"><label for="gRhr">Nyugalmi pulzus</label><input id="gRhr" type="number" inputmode="numeric" min="30" max="130" placeholder="ütés/perc"></div>'+
+    '<div class="fld"><label for="gWalk">Séta-pulzus átlaga</label><input id="gWalk" type="number" inputmode="numeric" min="40" max="180" placeholder="ütés/perc"></div></div>'+
+    '<div class="fld"><label for="gVo2">Kardiófitnesz (VO2max)</label><input id="gVo2" type="number" inputmode="decimal" step="0.1" min="10" max="80" placeholder="ml/kg/perc, pl. 31,5"></div>'+
+    '<p class="hint" id="gMsg"></p><button class="btn primary" data-act="metsave" type="button">'+ic('i-heart')+'<span>Mérőszámok mentése</span></button>';
+  return h+'</div>';
+}
+function saveMetrics(){
+  var rhr=numIn('gRhr',30,130),walkHr=numIn('gWalk',40,180),vo2=numIn('gVo2',10,80,true),wt=numIn('gWt',30,250,true),msg=$('gMsg');
+  if(!rhr&&!walkHr&&!vo2&&!wt){msg.textContent='Adj meg legalább egy értéket.';return;}
+  var dv=$('gDate').value,d=dv?new Date(dv+'T12:00:00'):new Date();
+  if(isNaN(d.getTime())||dv===dayKey(Date.now()))d=new Date();
+  store.metrics.push({id:Date.now(),date:d.toISOString(),wt:wt?Math.round(wt*10)/10:null,rhr:rhr,walkHr:walkHr,vo2:vo2?Math.round(vo2*10)/10:null});
+  store.metrics.sort(function(a,b){return a.date<b.date?-1:1;});
+  logView='insights';save();renderAll();window.scrollTo(0,0);
+}
+function metricsDue(){
+  var lim=Date.now()-7*864e5;
+  return !store.metrics.some(function(m){return new Date(m.date).getTime()>=lim;});
+}
+
+var CH={};
+function fmtV(d,v){return d.time?mmss(v):(d.dec?dec((Math.round(v*10)/10).toFixed(1)):String(Math.round(v)));}
+function chartBlock(d){
+  var p=d.pts.slice().sort(function(a,b){return a.d<b.d?-1:1;}),last=p[p.length-1],first=p[0];
+  var h='<div class="trend"><div class="row"><span class="lbl-t">'+d.t+'</span><span class="tv"><b>'+fmtV(d,last.v)+'</b>'+(d.u?' <span class="muted small">'+d.u+'</span>':'')+'</span></div>';
+  if(p.length<2)return h+'<p class="hint">Egy mérés van. A második után itt megjelenik a trend.</p></div>';
+  var delta=last.v-first.v,good=d.better==='lower'?delta<0:delta>0;
+  var dtxt=Math.abs(delta)<1e-9?'Nem változott az első méréshez képest.':
+    (delta>0?'+':'-')+fmtV(d,Math.abs(delta))+(d.u?' '+d.u:'')+' az első méréshez képest'+(d.neutral?'.':', '+(good?'kedvező irány.':'egyelőre nem kedvező irány.'));
+  var W=320,H=132,L=40,R=12,T=12,B=24,pw=W-L-R,ph=H-T-B;
+  var ts=p.map(function(o){return new Date(o.d).getTime();}),t0=ts[0],t1=ts[ts.length-1];
+  var vs=p.map(function(o){return o.v;}),vmin=Math.min.apply(null,vs),vmax=Math.max.apply(null,vs);
+  var span=vmax-vmin||Math.max(1,Math.abs(vmax)*0.05),lo=vmin-span*0.15,hi=vmax+span*0.15;
+  var xs=p.map(function(o,i){return L+(t1>t0?(ts[i]-t0)/(t1-t0):(p.length>1?i/(p.length-1):.5))*pw;});
+  var ys=p.map(function(o){return T+(1-(o.v-lo)/(hi-lo))*ph;});
+  var yMax=T+(1-(vmax-lo)/(hi-lo))*ph,yMin=T+(1-(vmin-lo)/(hi-lo))*ph;
+  CH[d.k]={d:d,p:p,xs:xs,ys:ys};
+  var s='<svg class="ch" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(d.t)+': '+fmtV(d,first.v)+'-ról '+fmtV(d,last.v)+'-ra">';
+  s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+yMax.toFixed(1)+'" y2="'+yMax.toFixed(1)+'" class="gl"/>';
+  if(vmax!==vmin)s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+yMin.toFixed(1)+'" y2="'+yMin.toFixed(1)+'" class="gl"/>';
+  s+='<text x="'+(L-6)+'" y="'+(yMax+4).toFixed(1)+'" text-anchor="end" class="ax">'+fmtV(d,vmax)+'</text>';
+  if(vmax!==vmin)s+='<text x="'+(L-6)+'" y="'+(yMin+4).toFixed(1)+'" text-anchor="end" class="ax">'+fmtV(d,vmin)+'</text>';
+  s+='<text x="'+L+'" y="'+(H-6)+'" text-anchor="start" class="ax">'+esc(fmtDay(first.d))+'</text>';
+  s+='<text x="'+(W-R)+'" y="'+(H-6)+'" text-anchor="end" class="ax">'+esc(fmtDay(last.d))+'</text>';
+  s+='<polyline class="ln" points="'+xs.map(function(x,i){return x.toFixed(1)+','+ys[i].toFixed(1);}).join(' ')+'"/>';
+  xs.forEach(function(x,i){var e=i===xs.length-1;s+='<circle class="pt" cx="'+x.toFixed(1)+'" cy="'+ys[i].toFixed(1)+'" r="'+(e?5.5:4)+'"/>';});
+  s+='<circle class="hl" id="hl-'+d.k+'" cx="0" cy="0" r="8" visibility="hidden"/>';
+  s+='<rect class="hit" data-k="'+d.k+'" x="'+(L-10)+'" y="0" width="'+(pw+20)+'" height="'+H+'" fill="transparent"/></svg>';
+  return h+'<p class="hint">'+dtxt+'</p>'+s+'<p class="hint cap" id="cap-'+d.k+'">Érintsd meg a grafikont az egyes értékekért.</p></div>';
+}
+function trendsCard(){
+  var M=store.metrics,L=store.log;CH={};
+  var pick=function(arr,f){return arr.filter(function(x){return x[f];}).map(function(x){return {d:x.date,v:x[f]};});};
+  var defs=[
+    {k:'wt',t:'Testsúly',u:'kg',dec:1,neutral:true,pts:pick(M,'wt')},
+    {k:'rhr',t:'Nyugalmi pulzus',u:'ütés/perc',better:'lower',pts:pick(M,'rhr')},
+    {k:'vo2',t:'Kardiófitnesz (VO2max)',u:'ml/kg/perc',better:'higher',dec:1,pts:pick(M,'vo2')},
+    {k:'walk',t:'Séta-pulzus átlaga',u:'ütés/perc',better:'lower',pts:pick(M,'walkHr')},
+    {k:'reft',t:'Referenciakör ideje',u:'',better:'lower',time:1,pts:pick(L.filter(function(x){return x.kind==='ref';}),'sec')},
+    {k:'refhr',t:'Referenciakör átlagpulzusa',u:'ütés/perc',better:'lower',pts:pick(L.filter(function(x){return x.kind==='ref';}),'hrAvg')},
+    {k:'rec',t:'Pulzusesés 1 perc alatt',u:'ütés/perc',better:'higher',pts:pick(L,'hrRec')}
+  ].filter(function(d){return d.pts.length;});
+  if(!defs.length)return '<div class="card"><div class="eyebrow">Trendek</div><p class="muted small">A heti mérőszámokból és a mérésekből itt rajzolódik ki a fejlődés: testsúly, nyugalmi pulzus, a referenciakör ideje, okosórával a VO2max, a séta-pulzus és a pulzusesés edzés után is.</p></div>';
+  return '<div class="card"><div class="eyebrow">Trendek</div><div class="trends">'+defs.map(chartBlock).join('')+'</div></div>';
+}
+function onChart(ev){
+  var r=ev.target;if(!r||!r.classList||!r.classList.contains('hit'))return;
+  var k=r.getAttribute('data-k'),c=CH[k];if(!c)return;
+  var b=r.ownerSVGElement.getBoundingClientRect(),x=(ev.clientX-b.left)/b.width*320,bi=0;
+  for(var i=1;i<c.xs.length;i++)if(Math.abs(c.xs[i]-x)<Math.abs(c.xs[bi]-x))bi=i;
+  var hl=$('hl-'+k);if(hl){hl.setAttribute('cx',c.xs[bi].toFixed(1));hl.setAttribute('cy',c.ys[bi].toFixed(1));hl.setAttribute('visibility','visible');}
+  var cap=$('cap-'+k);if(cap)cap.textContent=fmtDay(c.p[bi].d)+': '+fmtV(c.d,c.p[bi].v)+(c.d.u?' '+c.d.u:'');
+}
+document.addEventListener('pointermove',onChart);
+document.addEventListener('pointerdown',onChart);
+
+function saveManual(){
+  var m=numIn('mMin',0,600)||0,s=numIn('mSec',0,59)||0,sec=m*60+s,msg=$('mMsg');
+  if(sec<60){msg.textContent='Adj meg legalább 1 percet.';return;}
+  var dv=$('mDate').value,d=dv?new Date(dv+'T12:00:00'):new Date();
+  if(isNaN(d.getTime()))d=new Date();
+  if(dv===dayKey(Date.now()))d=new Date();
+  var isRef=$('mRef').checked,rItem=null;
+  if(isRef){for(var i=0;i<ALL.length;i++){if(ALL[i].kind==='ref'&&!isDone(ALL[i])){rItem=ALL[i];break;}}}
+  var np=(!isRef&&manualLink==='plan')?nextPlanItem():null;
+  if(np&&np.kind==='ref'){isRef=true;rItem=np;np=null;}
+  var e={id:Date.now(),date:d.toISOString(),kind:isRef?'ref':(np?'plan':'manual'),sport:isRef?(routeSet()?store.route.sport:manualSport):manualSport,
+    sid:rItem?rItem.id:(np?np.id:null),week:rItem?rItem.week:(np?np.week:null),planned:np?np.total/60:null,
+    title:isRef?(rItem?rItem.title:'Referenciakör')+(routeSet()?' · '+routeLabel():''):(np?planTitle(np,manualSport):SPORT[manualSport].name+' (utólag)'),min:Math.round(sec/60),sec:sec,full:true,
+    rpe:null,breath:manualBreath||null,hrAvg:numIn('mHrAvg',30,230),hrMax:numIn('mHrMax',30,230),hrRec:numIn('mHrRec',1,100),km:isRef?(store.route.km||numIn('mKm',0.01,300,true)):numIn('mKm',0.01,300,true),note:$('mNote').value.trim().slice(0,300)};
+  store.log.push(e);store.log.sort(function(a,b){return a.date<b.date?-1:1;});manualBreath='';manualLink='plan';
+  if(run.mode==='idle'){run.rain=false;run.sel=nextItem();}logView='list';save();renderAll();window.scrollTo(0,0);
+}
+function copyText(txt,msgId,taId){
+  var ok=function(){$(msgId).textContent='Vágólapra másolva.';};
+  var fb=function(){var ta=$(taId);ta.hidden=false;ta.readOnly=true;ta.value=txt;ta.focus();ta.select();$(msgId).textContent='Jelöld ki és másold ki a szöveget.';};
+  try{navigator.clipboard.writeText(txt).then(ok,fb);}catch(e){fb();}
+}
+function doImport(){
+  var msg=$('bkMsg');
+  try{
+    var o=JSON.parse($('bkText').value);
+    if(!o||!Array.isArray(o.log))throw new Error('x');
+    store.log=o.log;store.metrics=Array.isArray(o.metrics)?o.metrics:[];if(o.route)store.route=o.route;if(o.sports)store.sports=o.sports;store.onboarded=true;store.days=[3,4,5].indexOf(o.days)>=0?o.days:5;store.block=o.block===2?2:1;store.wdays=Array.isArray(o.wdays)?o.wdays:null;applySports();rebuildPlan();store.hrCap=o.hrCap||null;store.resets=o.resets||{};store.dismissed=o.dismissed||{};store.active=null;
+    save();renderAll();$('bkMsg').textContent='Visszaállítva: '+store.log.length+' bejegyzés.';
+  }catch(e){msg.textContent='Ez nem érvényes mentés. Másold be a teljes szöveget, amit a "Biztonsági mentés másolása" adott.';}
+}
+
+function renderAll(){renderPlan();if(run.mode==='idle')renderRun();renderLog();renderSettings();}
+
+/* ================= események ================= */
+document.addEventListener('click',function(ev){
+  var t=ev.target.closest?ev.target.closest('[data-act]'):null;if(!t)return;
+  var a=t.getAttribute('data-act');
+  switch(a){
+    case 'tab':setTab(t.getAttribute('data-tab'));break;
+    case 'pick':if(run.mode==='idle'){run.sel=byId(t.getAttribute('data-sid'));run.rain=false;renderRun();}setTab('run');break;
+    case 'start':startRun();break;
+    case 'rain':run.rain=t.getAttribute('data-v')==='1';renderRun();break;
+    case 'rainpick':if(run.mode==='idle'){run.sel=byId(t.getAttribute('data-sid'));run.rain=true;renderRun();}setTab('run');break;
+    case 'defer':store.defer[t.getAttribute('data-sid')]=dayKey(Date.now());save();if(run.mode==='idle'){run.rain=false;run.sel=nextItem();}renderAll();renderRun();setTab('run');break;
+    case 'refstart':
+      if($('rName')){
+        var rn=$('rName').value.trim().slice(0,60),rk=numIn('rKm',0.1,100,true);
+        if(rn||rk)store.route={name:rn,km:rk?Math.round(rk*100)/100:null,sport:routeSport};
+      }
+      store.route.sport=routeSport;save();
+      startWatch('ref',routeSport,byId(t.getAttribute('data-sid')));break;
+    case 'rsport':
+      routeSport=t.getAttribute('data-v');
+      [].forEach.call(document.querySelectorAll('#rSport .opt'),function(b){b.classList.toggle('on',b===t);});break;
+    case 'free':startWatch('free',t.getAttribute('data-sport'),null);break;
+    case 'pause':togglePause();break;
+    case 'skip':skipPhase();break;
+    case 'stop':arm('stop',function(){finishRun(false);});break;
+    case 'watchdone':finishWatch();break;
+    case 'cancel':arm('cancel',resetRun);break;
+    case 'rpe':
+      run.rpe=parseInt(t.getAttribute('data-v'),10);
+      [].forEach.call(document.querySelectorAll('#rpe button'),function(b){b.classList.toggle('on',b===t);});break;
+    case 'breath':
+      run.breath=t.getAttribute('data-v');
+      [].forEach.call(document.querySelectorAll('#breath .opt'),function(b){b.classList.toggle('on',b===t);});
+      $('breathHint').textContent={full:'Pontosan ez a cél.',short:'Még rendben, de legközelebb lassíts egy kicsit.',none:'Legközelebb menj lassabban, vagy tarts hosszabb pihenőt. Ha mellkasi szorítást vagy szédülést éreztél, szólj az orvosodnak.'}[run.breath]||'';break;
+    case 'savefb':saveFeedback();break;
+    case 'dropfb':arm('dropfb',resetRun);break;
+    case 'del':
+      var id=parseInt(t.getAttribute('data-id'),10);
+      arm('del'+id,function(){store.log=store.log.filter(function(x){return x.id!==id;});save();if(run.mode==='idle')run.sel=nextItem();renderAll();});break;
+    case 'repeat':
+      var w=t.getAttribute('data-w');store.resets[w]=new Date().toISOString();delete store.dismissed[w];save();run.sel=nextItem();renderAll();break;
+    case 'dismiss':store.dismissed[t.getAttribute('data-w')]=true;save();renderPlan();break;
+    case 'msport':
+      manualSport=t.getAttribute('data-v');
+      [].forEach.call(document.querySelectorAll('#mSport .opt'),function(b){b.classList.toggle('on',b===t);});break;
+    case 'msave':saveManual();break;
+    case 'sporttog':
+      var sk=t.getAttribute('data-v');
+      if(store.sports[sk]&&['bike','walk','ellip'].filter(hasSport).length===1){var sm=$('spMsg');if(sm)sm.textContent='Legalább egy mozgásforma kell.';break;}
+      store.sports[sk]=!store.sports[sk];applySports();save();
+      if(run.mode==='idle'){run.rain=false;run.sel=nextItem();}renderAll();break;
+    case 'onboard':store.onboarded=true;save();renderAll();break;
+    case 'wday':
+      var di=parseInt(t.getAttribute('data-v'),10),cur=wdays(),pos=cur.indexOf(di),wm=$('wdMsg');
+      if(pos>=0&&cur.length<=3){if(wm)wm.textContent='Legalább 3 edzésnap kell.';break;}
+      if(pos<0&&cur.length>=5){if(wm)wm.textContent='Legfeljebb 5 edzésnap. Előbb vegyél ki egyet.';break;}
+      if(pos>=0)cur.splice(pos,1);else cur.push(di);
+      store.wdays=cur.sort(function(a,b){return a-b;});rebuildPlan();save();if(run.mode==='idle'){run.rain=false;run.sel=nextItem();}renderAll();break;
+    case 'force':run.force=!run.force;renderRun();break;
+    case 'gapback':
+      var gi=gapInfo();if(gi){var nowIso=new Date().toISOString();for(var gw=gi.nx.week-gi.back;gw<=gi.nx.week;gw++)store.resets[gw]=nowIso;store.gapAck=gi.last;}
+      save();if(run.mode==='idle'){run.rain=false;run.sel=nextItem();}renderAll();window.scrollTo(0,0);break;
+    case 'gapok':var gk=gapInfo();if(gk)store.gapAck=gk.last;save();renderPlan();break;
+    case 'strdone':
+      store.log.push({id:Date.now(),date:new Date().toISOString(),kind:'str',sport:'str',title:'Erősítés és nyújtás',min:15,sec:900,full:true,note:''});
+      save();renderAll();break;
+    case 'setblock':store.block=parseInt(t.getAttribute('data-v'),10)===2?2:1;rebuildPlan();save();if(run.mode==='idle'){run.rain=false;run.sel=nextItem();}renderAll();setTab('plan');window.scrollTo(0,0);break;
+    case 'sumper':sumPeriod=t.getAttribute('data-v');renderLog();var sc=$('summary');if(sc)sc.scrollIntoView({block:'start'});break;
+    case 'copysum':copyText(summaryText(sumPeriod),'sumMsg','sumText');break;
+    case 'wipe':arm('wipe',function(){
+      store.log=[];store.metrics=[];store.defer={};store.route={name:'',km:null,sport:'bike'};store.hrCap=null;store.resets={};store.dismissed={};store.active=null;
+      store.sports={bike:true,walk:true,ellip:true};store.onboarded=false;store.days=5;store.wdays=null;store.gapAck=null;store.block=1;applySports();rebuildPlan();save();resetRun();renderAll();setTab('plan');window.scrollTo(0,0);});break;
+    case 'mlink':manualLink=t.getAttribute('data-v');[].forEach.call(document.querySelectorAll('#mLink .opt'),function(b){b.classList.toggle('on',b===t);});break;
+    case 'mbreath':manualBreath=manualBreath===t.getAttribute('data-v')?'':t.getAttribute('data-v');[].forEach.call(document.querySelectorAll('#mBreath .opt'),function(b){b.classList.toggle('on',b.getAttribute('data-v')===manualBreath);});break;
+    case 'attach':
+      var aid=parseInt(t.getAttribute('data-id'),10),np2=nextPlanItem();
+      store.log.forEach(function(x){if(x.id===aid&&np2){x.kind=np2.kind==='ref'?'ref':'plan';x.sid=np2.id;x.week=np2.week;x.planned=np2.kind==='ref'?null:np2.total/60;x.full=true;x.title=planTitle(np2,x.sport||'bike');if(np2.kind==='ref'&&!x.km&&store.route.km)x.km=store.route.km;}});
+      if(run.mode==='idle'){run.rain=false;run.sel=nextItem();}save();renderAll();break;
+    case 'metsave':saveMetrics();break;
+    case 'metdel':
+      var mid=parseInt(t.getAttribute('data-id'),10);
+      arm('m'+mid,function(){store.metrics=store.metrics.filter(function(m){return m.id!==mid;});save();renderAll();});break;
+    case 'gometrics':logView='add';addView='metrics';renderLog();setTab('log');window.scrollTo(0,0);break;
+    case 'logview':logView=t.getAttribute('data-v');renderLog();window.scrollTo(0,0);break;
+    case 'addview':addView=t.getAttribute('data-v');renderLog();break;
+    case 'copylog':copyText(logText(),'copyMsg','logText');break;
+    case 'export':
+      var o={v:2,log:store.log,metrics:store.metrics,route:store.route,sports:store.sports,days:store.days,wdays:store.wdays,block:store.block,hrCap:store.hrCap,resets:store.resets,dismissed:store.dismissed};
+      copyText(JSON.stringify(o),'bkMsg','bkText');break;
+    case 'showimport':
+      var ta=$('bkText');ta.hidden=false;ta.readOnly=false;ta.value='';ta.placeholder='Illeszd be ide a mentést';ta.focus();$('bkLoad').hidden=false;
+      $('bkMsg').textContent='A betöltés felülírja a mostani naplót.';break;
+    case 'import':arm('import',doImport);break;
+    /* hang ki/be: a Beállítások fülön */
+    case 'sndtest':ensureAudio();if(!store.sound){store.sound=true;save();renderSound();}cue('main');setTimeout(function(){say('Hangpróba. Ha ezt hallod, minden rendben.');},500);break;
+  }
+});
+document.addEventListener('change',function(ev){
+  if(ev.target&&ev.target.id==='voiceOn'){store.voice=ev.target.checked;if(store.voice&&!store.sound)store.sound=true;save();renderSettings();return;}
+  if(ev.target&&ev.target.id==='sndOn'){store.sound=ev.target.checked;save();ensureAudio();renderSettings();return;}
+  if(ev.target&&ev.target.id==='hrCap'){store.hrCap=numIn('hrCap',80,200);save();renderLog();}
+});
+
+/* ================= indulás ================= */
+run.sel=nextItem();
+renderAll();renderRun();setTab('plan');
+restore();
+})();
+</script>
+
+</body>
+</html>
